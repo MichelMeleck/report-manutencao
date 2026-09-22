@@ -316,13 +316,21 @@
 
     <div class="campo">
       <label for="motorista">Motorista <span class="obrig">*</span></label>
-      <input type="text" id="motorista" name="motorista" placeholder="Seu nome completo" required autocomplete="name">
+      <div class="select-wrap">
+        <select id="motorista" name="motorista" required disabled>
+          <option value="" disabled selected>Carregando lista...</option>
+        </select>
+      </div>
     </div>
 
     <div class="duas-colunas">
       <div class="campo">
         <label for="placa">Placa <span class="obrig">*</span></label>
-        <input type="text" id="placa" name="placa" placeholder="ABC1D23" required maxlength="8" style="text-transform:uppercase">
+        <div class="select-wrap">
+          <select id="placa" name="placa" required disabled>
+            <option value="" disabled selected>Carregando lista...</option>
+          </select>
+        </div>
       </div>
       <div class="campo">
         <label>Data</label>
@@ -418,6 +426,7 @@
   var outroWrap = document.getElementById("outroWrap");
   var campoTipoOutro = document.getElementById("tipoOutro");
   var dataTexto = document.getElementById("dataTexto");
+  var campoMotorista = document.getElementById("motorista");
   var campoPlaca = document.getElementById("placa");
   var inputFoto = document.getElementById("inputFoto");
   var botaoFoto = document.getElementById("botaoFoto");
@@ -430,6 +439,58 @@
   var fotos = []; // { filename, mimeType, base64, previewUrl }
   var dataAtualISO = "";
   var timerFechamentoModal = null;
+  var CHAVE_CACHE_LISTAS = "cva_listas_cache_v1";
+
+  // ---- Carrega motoristas e placas cadastrados (planilha no Apps Script) ----
+  function preencherSelect(select, itens, textoPlaceholder){
+    select.innerHTML = "";
+    var placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    placeholder.textContent = textoPlaceholder;
+    select.appendChild(placeholder);
+    itens.forEach(function(item){
+      var opt = document.createElement("option");
+      opt.value = item;
+      opt.textContent = item;
+      select.appendChild(opt);
+    });
+    select.disabled = false;
+  }
+
+  function aplicarListas(dados, deCache){
+    preencherSelect(campoMotorista, dados.motoristas || [], "Selecione");
+    preencherSelect(campoPlaca, dados.placas || [], "Selecione");
+    if (deCache){
+      mostrarErro("Não foi possível atualizar a lista agora — mostrando a última versão salva neste aparelho. Se cadastros recentes não aparecerem, tente novamente com internet.");
+    }
+  }
+
+  function carregarListas(){
+    fetch(SCRIPT_URL + "?acao=listas")
+      .then(function(resp){ return resp.json(); })
+      .then(function(dados){
+        if (!dados || dados.ok === false){
+          throw new Error((dados && dados.error) || "Falha ao carregar listas");
+        }
+        try { localStorage.setItem(CHAVE_CACHE_LISTAS, JSON.stringify(dados)); } catch(e){}
+        aplicarListas(dados, false);
+      })
+      .catch(function(){
+        var cache = null;
+        try { cache = JSON.parse(localStorage.getItem(CHAVE_CACHE_LISTAS) || "null"); } catch(e){}
+        if (cache){
+          aplicarListas(cache, true);
+        } else {
+          preencherSelect(campoMotorista, [], "Não foi possível carregar");
+          preencherSelect(campoPlaca, [], "Não foi possível carregar");
+          campoMotorista.disabled = true;
+          campoPlaca.disabled = true;
+          mostrarErro("Não foi possível carregar a lista de motoristas e placas. Verifique sua internet e recarregue a página.");
+        }
+      });
+  }
 
   // Data da solicitação = sempre o dia de hoje (não editável pelo motorista)
   function hojeISO(){
@@ -447,13 +508,7 @@
     dataTexto.textContent = formatarDataBR(dataAtualISO);
   }
   atualizarData();
-
-  // Placa em maiúsculas
-  campoPlaca.addEventListener("input", function(){
-    var pos = campoPlaca.selectionStart;
-    campoPlaca.value = campoPlaca.value.toUpperCase();
-    campoPlaca.setSelectionRange(pos, pos);
-  });
+  carregarListas();
 
   // Campo "Outro" tipo de manutenção
   campoTipo.addEventListener("change", function(){
