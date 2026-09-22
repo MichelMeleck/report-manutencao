@@ -25,6 +25,20 @@
 <meta name="twitter:title" content="Manutenção de Veículos – CVA">
 <meta name="twitter:description" content="Registre solicitações de manutenção da frota, com fotos, direto pelo celular.">
 <meta name="twitter:image" content="https://michelmeleck.github.io/report-manutencao/og-image.png">
+
+<!-- ============================================================
+     Deixa o site instalável como app no celular (PWA): ícone na
+     tela inicial, abre em tela cheia sem a barra do navegador.
+     Precisa dos arquivos manifest.json, sw.js, icon-192.png,
+     icon-512.png e icon-512-maskable.png no mesmo repositório.
+     ============================================================ -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Manutenção CVA">
+<meta name="mobile-web-app-capable" content="yes">
+
 <style>
   :root{
     --verde:#1F7A4D;
@@ -521,6 +535,18 @@
   "use strict";
 
   // ============================================================
+  // Registra o service worker (sw.js), que é o que permite o
+  // navegador oferecer "instalar" o site como app. Se o arquivo
+  // não existir ainda no repositório, isso simplesmente falha em
+  // silêncio e o site continua funcionando normalmente como página.
+  // ============================================================
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
+
+  // ============================================================
   // Cole aqui a URL do Apps Script (termina em /exec), depois de
   // publicar o backend seguindo as instruções do arquivo
   // Codigo_AppsScript.gs
@@ -721,8 +747,11 @@
   function validarPlacaNoServidor(placa, aoConcluir){
     var url = SCRIPT_URL + "?acao=validarPlaca&placa=" + encodeURIComponent(placa);
     jsonp(url, 10000,
-      function(dados){ aoConcluir(!!(dados && dados.ok)); },
-      function(){ aoConcluir(null); }
+      function(dados){
+        var ultimoKm = dados && (dados.ultimoKm || dados.ultimoKm === 0) ? dados.ultimoKm : null;
+        aoConcluir(!!(dados && dados.ok), ultimoKm);
+      },
+      function(){ aoConcluir(null, null); }
     );
   }
 
@@ -947,7 +976,7 @@
     botaoEnviar.disabled = true;
     botaoEnviar.classList.add("carregando");
 
-    validarPlacaNoServidor(placaDigitada, function(valido){
+    validarPlacaNoServidor(placaDigitada, function(valido, ultimoKm){
       if (valido === false){
         botaoEnviar.disabled = false;
         botaoEnviar.classList.remove("carregando");
@@ -960,6 +989,20 @@
         abrirModalErro("Placa não cadastrada", "Corrija as informações da placa do veículo.");
         return;
       }
+
+      // Trava: não deixa enviar se a KM digitada for menor que a
+      // última já registrada pra essa placa (provável erro de digitação).
+      var kmDigitado = parseInt(String(document.getElementById("km").value).replace(/\D/g, ""), 10);
+      if (ultimoKm !== null && !isNaN(kmDigitado) && kmDigitado < ultimoKm){
+        botaoEnviar.disabled = false;
+        botaoEnviar.classList.remove("carregando");
+        abrirModalErro(
+          "Verifique a KM do veículo",
+          "A quilometragem informada (" + kmDigitado.toLocaleString("pt-BR") + " km) é menor que a última manutenção registrada para essa placa (" + ultimoKm.toLocaleString("pt-BR") + " km). Confira o hodômetro do veículo e tente novamente."
+        );
+        return;
+      }
+
       enviarSolicitacao(placaDigitada);
     });
   });
