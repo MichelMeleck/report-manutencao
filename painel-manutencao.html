@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Painel de Manutenção – Cheiro Verde Ambiental</title>
+<meta name="description" content="Painel de gestão das solicitações de manutenção da frota.">
+<meta name="theme-color" content="#1F7A4D">
+<meta name="robots" content="noindex, nofollow">
+
+<style>
+  :root{
+    --verde:#1F7A4D;
+    --verde-escuro:#14532d;
+    --verde-claro:#E7F3EC;
+    --bg:#F6F8F6;
+    --card:#FFFFFF;
+    --texto:#1B2420;
+    --texto-suave:#5B6B62;
+    --borda:#DCE5DE;
+    --erro:#C24A3B;
+    --erro-claro:#FBEAE7;
+    --sombra:0 1px 3px rgba(27,36,32,.08), 0 6px 16px rgba(27,36,32,.06);
+    --azul:#2A6FB0;
+    --azul-claro:#E8F1FA;
+    --amarelo:#B0821F;
+    --amarelo-claro:#FBF3E1;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#111813;
+      --card:#1A221C;
+      --texto:#EAF1EC;
+      --texto-suave:#9FB0A5;
+      --borda:#2A362C;
+      --verde-claro:#1C2C21;
+      --erro-claro:#301F1D;
+      --azul-claro:#182531;
+      --amarelo-claro:#2C2416;
+      --sombra:0 1px 3px rgba(0,0,0,.5), 0 6px 16px rgba(0,0,0,.35);
+    }
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; height:100%; }
+  body{
+    background:var(--bg);
+    color:var(--texto);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100%;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+
+  /* ---------- tela de login ---------- */
+  .tela-login{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .caixa-login{
+    width:100%;
+    max-width:360px;
+  }
+  .marca{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:22px;
+    justify-content:center;
+  }
+  .marca .selo{
+    width:38px; height:38px; border-radius:10px;
+    background:var(--verde);
+    display:flex; align-items:center; justify-content:center;
+    flex:none;
+  }
+  .marca .selo svg{ width:20px; height:20px; }
+  .marca .nome{
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.02em;
+    color:var(--texto-suave);
+    text-transform:uppercase;
+  }
+  .caixa-login h1{
+    font-size:21px;
+    margin:0 0 6px;
+    text-align:center;
+  }
+  .caixa-login .sub{
+    color:var(--texto-suave);
+    font-size:14px;
+    text-align:center;
+    margin:0 0 22px;
+    line-height:1.5;
+  }
+  .campo{
+    background:var(--card);
+    border:1px solid var(--borda);
+    border-radius:14px;
+    padding:14px 16px;
+    box-shadow:var(--sombra);
+  }
+  .campo label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    color:var(--texto-suave);
+    margin-bottom:8px;
+  }
+  .campo input{
+    width:100%;
+    font-size:16px;
+    font-family:inherit;
+    color:var(--texto);
+    background:transparent;
+    border:none;
+    padding:6px 0 2px;
+    outline:none;
+  }
+  .campo:focus-within{ border-color:var(--verde); }
+
+  .erro-msg{
+    display:none;
+    background:var(--erro-claro);
+    color:var(--erro);
+    border-radius:12px;
+    padding:12px 14px;
+    font-size:13.5px;
+    line-height:1.5;
+    margin-top:14px;
+  }
+  .erro-msg.mostrar{ display:block; }
+
+  button.enviar{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:14px;
+    background:var(--verde);
+    color:#fff;
+    font-size:16px;
+    font-weight:700;
+    letter-spacing:.01em;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    margin-top:14px;
+  }
+  button.enviar:active{ background:var(--verde-escuro); }
+  button.enviar:disabled{ opacity:.6; cursor:default; }
+
+  .spinner{
+    width:16px; height:16px;
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,.4);
+    border-top-color:#fff;
+    animation:girar .7s linear infinite;
+    display:none;
+  }
+  button.enviar.carregando .spinner{ display:inline-block; }
+  button.enviar.carregando .rotulo-normal{ display:none; }
+  @keyframes girar{ to{ transform:rotate(360deg); } }
+
+  /* ---------- painel (quadro) ---------- */
+  .app{ display:none; min-height:100vh; flex-direction:column; }
+  .app.mostrar{ display:flex; }
+
+  .topo{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:14px 18px;
+    background:var(--card);
+    border-bottom:1px solid var(--borda);
+    position:sticky;
+    top:0;
+    z-index:10;
+    flex-wrap:wrap;
+  }
+  .topo .marca{ margin:0; justify-content:flex-start; }
+  .topo h1{
+    font-size:17px;
+    margin:0;
+  }
+  .topo .acoes{ display:flex; gap:8px; align-items:center; }
+  .botao-icone{
+    background:none;
+    border:1px solid var(--borda);
+    color:var(--texto-suave);
+    font-size:13px;
+    font-weight:700;
+    padding:9px 14px;
+    border-radius:10px;
+    cursor:pointer;
+    display:flex; align-items:center; gap:6px;
+  }
+  .botao-icone:active{ background:var(--verde-claro); }
+  .botao-icone svg{ width:15px; height:15px; }
+  .botao-icone.girando svg{ animation:girar2 .8s linear infinite; }
+  @keyframes girar2{ to{ transform:rotate(360deg); } }
+
+  .quadro-wrap{
+    flex:1;
+    overflow-x:auto;
+    padding:18px;
+  }
+  .quadro{
+    display:flex;
+    gap:14px;
+    min-height:100%;
+    align-items:flex-start;
+  }
+  .coluna{
+    flex:0 0 280px;
+    width:280px;
+    background:var(--bg);
+    border-radius:16px;
+    display:flex;
+    flex-direction:column;
+    max-height:calc(100vh - 100px);
+  }
+  .coluna-cabecalho{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:6px 10px 12px;
+  }
+  .coluna-titulo{
+    font-size:13.5px;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .bolinha{ width:9px; height:9px; border-radius:50%; flex:none; }
+  .contagem{
+    background:var(--card);
+    border:1px solid var(--borda);
+    color:var(--texto-suave);
+    font-size:12px;
+    font-weight:700;
+    padding:2px 8px;
+    border-radius:20px;
+  }
+  .coluna-cards{
+    flex:1;
+    overflow-y:auto;
+    padding:0 2px 8px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .coluna-vazia{
+    color:var(--texto-suave);
+    font-size:13px;
+    text-align:center;
+    padding:18px 10px;
+    border:1.5px dashed var(--borda);
+    border-radius:12px;
+  }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--borda);
+    border-radius:14px;
+    padding:13px 14px;
+    box-shadow:var(--sombra);
+    cursor:pointer;
+    text-align:left;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .card:active{ background:var(--verde-claro); }
+  .card .placa{
+    font-size:15px;
+    font-weight:800;
+    letter-spacing:.03em;
+  }
+  .card .tipo{
+    font-size:13px;
+    color:var(--verde-escuro);
+    font-weight:700;
+  }
+  .card .motorista{
+    font-size:12.5px;
+    color:var(--texto-suave);
+  }
+  .card .descricao-prev{
+    font-size:12.5px;
+    color:var(--texto-suave);
+    line-height:1.4;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .card .rodape-card{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-top:2px;
+    font-size:11.5px;
+    color:var(--texto-suave);
+  }
+  .card .fotos-tag{
+    display:flex;
+    align-items:center;
+    gap:4px;
+  }
+  .card .fotos-tag svg{ width:13px; height:13px; }
+
+  .carregando-quadro, .erro-quadro{
+    color:var(--texto-suave);
+    font-size:14px;
+    text-align:center;
+    padding:40px 20px;
+  }
+  .erro-quadro{ color:var(--erro); }
+
+  /* ---------- modal de detalhes ---------- */
+  .modal-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(15,20,17,.55);
+    align-items:flex-start;
+    justify-content:center;
+    padding:24px 16px;
+    z-index:1000;
+    overflow-y:auto;
+  }
+  .modal-overlay.mostrar{ display:flex; }
+  .modal-card{
+    background:var(--card);
+    border-radius:20px;
+    padding:26px 22px;
+    max-width:440px;
+    width:100%;
+    box-shadow:0 12px 32px rgba(0,0,0,.25);
+    animation:aparecer .18s ease-out;
+    margin-top:20px;
+  }
+  @keyframes aparecer{
+    from{ opacity:0; transform:translateY(6px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  .modal-topo{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .modal-topo h2{ margin:0 0 3px; font-size:19px; letter-spacing:.02em; }
+  .modal-topo .status-atual{
+    font-size:12px;
+    font-weight:700;
+    padding:3px 10px;
+    border-radius:20px;
+    display:inline-block;
+  }
+  .fechar-modal{
+    background:none;
+    border:none;
+    color:var(--texto-suave);
+    font-size:20px;
+    line-height:1;
+    cursor:pointer;
+    padding:4px;
+    flex:none;
+  }
+  .linha-detalhe{
+    display:flex;
+    gap:10px;
+    padding:9px 0;
+    border-bottom:1px solid var(--borda);
+    font-size:13.5px;
+  }
+  .linha-detalhe:last-of-type{ border-bottom:none; }
+  .linha-detalhe .rotulo{
+    color:var(--texto-suave);
+    flex:0 0 108px;
+    font-weight:600;
+  }
+  .linha-detalhe .valor{ flex:1; white-space:pre-line; }
+
+  .fotos-modal-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:8px;
+    margin-top:12px;
+  }
+  .fotos-modal-grid a{
+    display:block;
+    aspect-ratio:1;
+    border-radius:10px;
+    overflow:hidden;
+    background:var(--verde-claro);
+  }
+  .fotos-modal-grid img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+  .mover-titulo{
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--texto-suave);
+    text-transform:uppercase;
+    letter-spacing:.02em;
+    margin:20px 0 10px;
+  }
+  .mover-botoes{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .botao-mover{
+    flex:1 1 auto;
+    padding:10px 12px;
+    border-radius:10px;
+    border:1px solid var(--borda);
+    background:var(--bg);
+    color:var(--texto);
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .botao-mover:active{ opacity:.75; }
+  .botao-mover:disabled{ opacity:.5; cursor:default; }
+
+  .aviso-modal{
+    display:none;
+    background:var(--erro-claro);
+    color:var(--erro);
+    border-radius:10px;
+    padding:10px 12px;
+    font-size:12.5px;
+    margin-top:12px;
+  }
+  .aviso-modal.mostrar{ display:block; }
+
+  @media (prefers-reduced-motion: reduce){
+    .spinner, .botao-icone.girando svg{ animation:none; }
+    .modal-card{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== TELA DE LOGIN ===================== -->
+<div class="tela-login" id="telaLogin">
+  <div class="caixa-login">
+    <div class="marca">
+      <span class="selo">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 13l1.6-5.2A2 2 0 0 1 6.5 6.3h11a2 2 0 0 1 1.9 1.4L21 13v6a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-1H6v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
+          <circle cx="7.5" cy="16.5" r="1.4" fill="#fff"/>
+          <circle cx="16.5" cy="16.5" r="1.4" fill="#fff"/>
+        </svg>
+      </span>
+      <span class="nome">Cheiro Verde Ambiental</span>
+    </div>
+    <h1>Painel de Manutenção</h1>
+    <p class="sub">Área da equipe de gestão. Digite a senha do painel para continuar.</p>
+
+    <form id="formularioLogin" novalidate>
+      <div class="campo">
+        <label for="senhaPainel">Senha do painel</label>
+        <input type="password" id="senhaPainel" name="senhaPainel" autocomplete="current-password" placeholder="Digite a senha" required>
+      </div>
+
+      <div class="erro-msg" id="erroLogin"></div>
+
+      <button type="submit" class="enviar" id="botaoLogin">
+        <span class="spinner"></span>
+        <span class="rotulo-normal">Entrar</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== PAINEL ===================== -->
+<div class="app" id="app">
+  <div class="topo">
+    <div class="marca">
+      <span class="selo">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 13l1.6-5.2A2 2 0 0 1 6.5 6.3h11a2 2 0 0 1 1.9 1.4L21 13v6a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-1H6v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
+          <circle cx="7.5" cy="16.5" r="1.4" fill="#fff"/>
+          <circle cx="16.5" cy="16.5" r="1.4" fill="#fff"/>
+        </svg>
+      </span>
+      <h1>Painel de Manutenção</h1>
+    </div>
+    <div class="acoes">
+      <button type="button" class="botao-icone" id="botaoAtualizar">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 11A8 8 0 1 0 18.5 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 5v6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Atualizar
+      </button>
+      <button type="button" class="botao-icone" id="botaoSair">Sair</button>
+    </div>
+  </div>
+
+  <div class="quadro-wrap">
+    <div id="carregandoQuadro" class="carregando-quadro">Carregando solicitações…</div>
+    <div id="erroQuadro" class="erro-quadro" style="display:none"></div>
+    <div class="quadro" id="quadro" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ===================== MODAL DE DETALHES ===================== -->
+<div class="modal-overlay" id="modalDetalhe">
+  <div class="modal-card">
+    <div class="modal-topo">
+      <div>
+        <h2 id="modalPlaca">–</h2>
+        <span class="status-atual" id="modalStatusAtual">–</span>
+      </div>
+      <button type="button" class="fechar-modal" id="fecharModalDetalhe" aria-label="Fechar">✕</button>
+    </div>
+
+    <div class="linha-detalhe"><span class="rotulo">Motorista</span><span class="valor" id="modalMotorista">–</span></div>
+    <div class="linha-detalhe"><span class="rotulo">Quilometragem</span><span class="valor" id="modalKm">–</span></div>
+    <div class="linha-detalhe"><span class="rotulo">Tipo</span><span class="valor" id="modalTipo">–</span></div>
+    <div class="linha-detalhe"><span class="rotulo">Enviado em</span><span class="valor" id="modalData">–</span></div>
+    <div class="linha-detalhe"><span class="rotulo">Descrição</span><span class="valor" id="modalDescricao">–</span></div>
+
+    <div id="modalFotosWrap" style="display:none">
+      <div class="mover-titulo" style="margin-top:16px">Fotos</div>
+      <div class="fotos-modal-grid" id="modalFotosGrid"></div>
+    </div>
+
+    <div class="mover-titulo">Mover para</div>
+    <div class="mover-botoes" id="modalBotoesMover"></div>
+
+    <div class="aviso-modal" id="modalAviso"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ============================================================
+  // Cole aqui a mesma URL do Apps Script usada no formulário dos
+  // motoristas (arquivo reporte-manutencao.html) — é o mesmo backend.
+  // ============================================================
+  var SCRIPT_URL = "https://script.google.com/macros/s/AKfycby6NtZcj5s2dKyFTNgGRHT4zberx2M_NZ6cV4dmNQ6FbCBZYIecDbV2ED4jd-JfbrRQOQ/exec";
+
+  var CHAVE_SENHA = "cva_painel_senha_v1";
+  var INTERVALO_ATUALIZACAO_MS = 45000;
+
+  var COLUNAS = [
+    { chave: "novo", titulo: "Novo", cor: "#2A6FB0" },
+    { chave: "em_andamento", titulo: "Em andamento", cor: "#B0821F" },
+    { chave: "concluido", titulo: "Concluído", cor: "#1F7A4D" },
+    { chave: "cancelado", titulo: "Cancelado", cor: "#C24A3B" }
+  ];
+
+  // ---------- elementos: login ----------
+  var telaLogin = document.getElementById("telaLogin");
+  var formularioLogin = document.getElementById("formularioLogin");
+  var campoSenha = document.getElementById("senhaPainel");
+  var erroLogin = document.getElementById("erroLogin");
+  var botaoLogin = document.getElementById("botaoLogin");
+
+  // ---------- elementos: painel ----------
+  var app = document.getElementById("app");
+  var botaoAtualizar = document.getElementById("botaoAtualizar");
+  var botaoSair = document.getElementById("botaoSair");
+  var carregandoQuadro = document.getElementById("carregandoQuadro");
+  var erroQuadro = document.getElementById("erroQuadro");
+  var quadro = document.getElementById("quadro");
+
+  // ---------- elementos: modal ----------
+  var modalDetalhe = document.getElementById("modalDetalhe");
+  var fecharModalDetalhe = document.getElementById("fecharModalDetalhe");
+  var modalPlaca = document.getElementById("modalPlaca");
+  var modalStatusAtual = document.getElementById("modalStatusAtual");
+  var modalMotorista = document.getElementById("modalMotorista");
+  var modalKm = document.getElementById("modalKm");
+  var modalTipo = document.getElementById("modalTipo");
+  var modalData = document.getElementById("modalData");
+  var modalDescricao = document.getElementById("modalDescricao");
+  var modalFotosWrap = document.getElementById("modalFotosWrap");
+  var modalFotosGrid = document.getElementById("modalFotosGrid");
+  var modalBotoesMover = document.getElementById("modalBotoesMover");
+  var modalAviso = document.getElementById("modalAviso");
+
+  var solicitacoesAtuais = [];
+  var timerAtualizacao = null;
+
+  // ============================================================
+  // JSONP genérico (mesmo padrão do formulário dos motoristas).
+  // ============================================================
+  function jsonp(urlBase, timeoutMs, aoReceber, aoFalhar){
+    var nomeCallback = "cvaPainelCallback_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
+    var finalizado = false;
+
+    var tagScript = document.createElement("script");
+    tagScript.src = urlBase + (urlBase.indexOf("?") === -1 ? "?" : "&") + "callback=" + nomeCallback;
+
+    var timeoutId = setTimeout(function(){
+      if (finalizado) return;
+      finalizado = true;
+      limpar();
+      aoFalhar();
+    }, timeoutMs);
+
+    function limpar(){
+      clearTimeout(timeoutId);
+      delete window[nomeCallback];
+      if (tagScript.parentNode) tagScript.parentNode.removeChild(tagScript);
+    }
+
+    window[nomeCallback] = function(dados){
+      if (finalizado) return;
+      finalizado = true;
+      limpar();
+      aoReceber(dados);
+    };
+
+    tagScript.onerror = function(){
+      if (finalizado) return;
+      finalizado = true;
+      limpar();
+      aoFalhar();
+    };
+
+    document.head.appendChild(tagScript);
+  }
+
+  function obterSenhaSalva(){
+    try { return localStorage.getItem(CHAVE_SENHA) || ""; } catch(e){ return ""; }
+  }
+  function salvarSenha(senha){
+    try { localStorage.setItem(CHAVE_SENHA, senha); } catch(e){}
+  }
+  function limparSenha(){
+    try { localStorage.removeItem(CHAVE_SENHA); } catch(e){}
+  }
+
+  function mostrarErroLogin(texto){
+    erroLogin.textContent = texto;
+    erroLogin.classList.add("mostrar");
+  }
+  function esconderErroLogin(){
+    erroLogin.classList.remove("mostrar");
+  }
+
+  function mostrarApp(){
+    telaLogin.style.display = "none";
+    app.classList.add("mostrar");
+    carregarSolicitacoes();
+    iniciarAtualizacaoAutomatica();
+  }
+  function mostrarLogin(){
+    app.classList.remove("mostrar");
+    telaLogin.style.display = "flex";
+    pararAtualizacaoAutomatica();
+  }
+
+  function iniciarAtualizacaoAutomatica(){
+    pararAtualizacaoAutomatica();
+    timerAtualizacao = setInterval(function(){
+      // Não atualiza sozinho se o modal estiver aberto, pra não
+      // atrapalhar quem está lendo os detalhes de um card.
+      if (modalDetalhe.classList.contains("mostrar")) return;
+      carregarSolicitacoes(true);
+    }, INTERVALO_ATUALIZACAO_MS);
+  }
+  function pararAtualizacaoAutomatica(){
+    if (timerAtualizacao){ clearInterval(timerAtualizacao); timerAtualizacao = null; }
+  }
+
+  // ============================================================
+  // Login: tenta buscar a lista de solicitações com a senha digitada.
+  // Se a senha estiver certa, o próprio pedido já devolve os dados.
+  // ============================================================
+  formularioLogin.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    esconderErroLogin();
+
+    var senha = campoSenha.value.trim();
+    if (!senha){
+      mostrarErroLogin("Digite a senha do painel.");
+      return;
+    }
+    if (SCRIPT_URL.indexOf("COLE_AQUI") !== -1){
+      mostrarErroLogin("O painel ainda não foi configurado: falta colar a URL do Apps Script neste arquivo.");
+      return;
+    }
+
+    botaoLogin.disabled = true;
+    botaoLogin.classList.add("carregando");
+
+    buscarSolicitacoes(senha, function(ok, dados){
+      botaoLogin.disabled = false;
+      botaoLogin.classList.remove("carregando");
+      if (ok){
+        salvarSenha(senha);
+        campoSenha.value = "";
+        solicitacoesAtuais = dados.solicitacoes || [];
+        renderizarQuadro();
+        mostrarApp();
+      } else {
+        mostrarErroLogin((dados && dados.error) || "Não foi possível entrar. Tente novamente.");
+      }
+    });
+  });
+
+  botaoSair.addEventListener("click", function(){
+    limparSenha();
+    mostrarLogin();
+  });
+
+  function buscarSolicitacoes(senha, callback){
+    var url = SCRIPT_URL + "?acao=listarSolicitacoes&senha=" + encodeURIComponent(senha);
+    jsonp(url, 12000,
+      function(dados){
+        if (dados && dados.ok){
+          callback(true, dados);
+        } else {
+          callback(false, dados);
+        }
+      },
+      function(){
+        callback(false, { error: "Não foi possível conectar agora. Verifique sua internet e tente novamente." });
+      }
+    );
+  }
+
+  function carregarSolicitacoes(atualizacaoSilenciosa){
+    var senha = obterSenhaSalva();
+    if (!senha){ mostrarLogin(); return; }
+
+    if (!atualizacaoSilenciosa){
+      carregandoQuadro.style.display = "block";
+      erroQuadro.style.display = "none";
+      quadro.style.display = "none";
+    } else {
+      botaoAtualizar.classList.add("girando");
+    }
+
+    buscarSolicitacoes(senha, function(ok, dados){
+      botaoAtualizar.classList.remove("girando");
+      if (ok){
+        solicitacoesAtuais = dados.solicitacoes || [];
+        renderizarQuadro();
+        carregandoQuadro.style.display = "none";
+        erroQuadro.style.display = "none";
+        quadro.style.display = "flex";
+      } else {
+        // Senha pode ter sido trocada no script — volta pro login.
+        if (dados && /senha/i.test(dados.error || "")){
+          limparSenha();
+          mostrarLogin();
+          mostrarErroLogin(dados.error);
+          return;
+        }
+        if (!atualizacaoSilenciosa){
+          carregandoQuadro.style.display = "none";
+          erroQuadro.style.display = "block";
+          erroQuadro.textContent = (dados && dados.error) || "Não foi possível carregar as solicitações.";
+        }
+      }
+    });
+  }
+
+  botaoAtualizar.addEventListener("click", function(){
+    carregarSolicitacoes(true);
+  });
+
+  // ============================================================
+  // Monta o quadro (colunas + cards) a partir de solicitacoesAtuais.
+  // ============================================================
+  function renderizarQuadro(){
+    quadro.innerHTML = "";
+    COLUNAS.forEach(function(coluna){
+      var itens = solicitacoesAtuais.filter(function(s){ return s.status === coluna.chave; });
+
+      var elColuna = document.createElement("div");
+      elColuna.className = "coluna";
+
+      var cabecalho = document.createElement("div");
+      cabecalho.className = "coluna-cabecalho";
+      cabecalho.innerHTML =
+        '<span class="coluna-titulo"><span class="bolinha" style="background:' + coluna.cor + '"></span>' + coluna.titulo + '</span>' +
+        '<span class="contagem">' + itens.length + '</span>';
+      elColuna.appendChild(cabecalho);
+
+      var listaCards = document.createElement("div");
+      listaCards.className = "coluna-cards";
+
+      if (itens.length === 0){
+        var vazio = document.createElement("div");
+        vazio.className = "coluna-vazia";
+        vazio.textContent = "Nenhuma solicitação aqui.";
+        listaCards.appendChild(vazio);
+      } else {
+        itens.forEach(function(item){
+          listaCards.appendChild(montarCard(item));
+        });
+      }
+
+      elColuna.appendChild(listaCards);
+      quadro.appendChild(elColuna);
+    });
+  }
+
+  function montarCard(item){
+    var card = document.createElement("button");
+    card.type = "button";
+    card.className = "card";
+
+    var linhaTopo = document.createElement("div");
+    linhaTopo.className = "placa";
+    linhaTopo.textContent = item.placa || "Sem placa";
+    card.appendChild(linhaTopo);
+
+    var tipo = document.createElement("div");
+    tipo.className = "tipo";
+    tipo.textContent = item.tipo || "Manutenção";
+    card.appendChild(tipo);
+
+    var motorista = document.createElement("div");
+    motorista.className = "motorista";
+    motorista.textContent = item.motorista || "Motorista não informado";
+    card.appendChild(motorista);
+
+    if (item.descricao){
+      var descricao = document.createElement("div");
+      descricao.className = "descricao-prev";
+      descricao.textContent = item.descricao;
+      card.appendChild(descricao);
+    }
+
+    var rodape = document.createElement("div");
+    rodape.className = "rodape-card";
+    var dataSpan = document.createElement("span");
+    dataSpan.textContent = item.dataHoraEnvio || "";
+    rodape.appendChild(dataSpan);
+    if (item.fotos && item.fotos.length){
+      var fotosTag = document.createElement("span");
+      fotosTag.className = "fotos-tag";
+      fotosTag.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><circle cx="8.5" cy="10" r="1.4" fill="currentColor"/><path d="M4 17l5-5 4 4 3-3 4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> ' + item.fotos.length;
+      rodape.appendChild(fotosTag);
+    }
+    card.appendChild(rodape);
+
+    card.addEventListener("click", function(){ abrirModalDetalhe(item.id); });
+    return card;
+  }
+
+  function rotuloStatus(chave){
+    var coluna = COLUNAS.filter(function(c){ return c.chave === chave; })[0];
+    return coluna ? coluna.titulo : chave;
+  }
+  function corStatus(chave){
+    var coluna = COLUNAS.filter(function(c){ return c.chave === chave; })[0];
+    return coluna ? coluna.cor : "#5B6B62";
+  }
+
+  // ============================================================
+  // Modal de detalhes de uma solicitação.
+  // ============================================================
+  function abrirModalDetalhe(id){
+    var item = solicitacoesAtuais.filter(function(s){ return s.id === id; })[0];
+    if (!item) return;
+
+    modalDetalhe.dataset.idAtual = id;
+    modalAviso.classList.remove("mostrar");
+
+    modalPlaca.textContent = item.placa || "Sem placa";
+    modalStatusAtual.textContent = rotuloStatus(item.status);
+    modalStatusAtual.style.background = corStatus(item.status) + "22";
+    modalStatusAtual.style.color = corStatus(item.status);
+
+    modalMotorista.textContent = item.motorista || "–";
+    modalKm.textContent = item.km ? (item.km + " km") : "–";
+    modalTipo.textContent = item.tipo || "–";
+    modalData.textContent = item.dataHoraEnvio || "–";
+    modalDescricao.textContent = item.descricao || "–";
+
+    if (item.fotos && item.fotos.length){
+      modalFotosWrap.style.display = "block";
+      modalFotosGrid.innerHTML = "";
+      item.fotos.forEach(function(fotoId){
+        if (!fotoId) return;
+        var link = document.createElement("a");
+        link.href = "https://drive.google.com/file/d/" + fotoId + "/view";
+        link.target = "_blank";
+        link.rel = "noopener";
+        var img = document.createElement("img");
+        img.src = "https://drive.google.com/thumbnail?id=" + fotoId + "&sz=w500";
+        img.loading = "lazy";
+        img.alt = "Foto da solicitação";
+        link.appendChild(img);
+        modalFotosGrid.appendChild(link);
+      });
+    } else {
+      modalFotosWrap.style.display = "none";
+    }
+
+    modalBotoesMover.innerHTML = "";
+    COLUNAS.forEach(function(coluna){
+      if (coluna.chave === item.status) return;
+      var botao = document.createElement("button");
+      botao.type = "button";
+      botao.className = "botao-mover";
+      botao.textContent = coluna.titulo;
+      botao.addEventListener("click", function(){
+        moverSolicitacao(item.id, coluna.chave, botao);
+      });
+      modalBotoesMover.appendChild(botao);
+    });
+
+    modalDetalhe.classList.add("mostrar");
+  }
+
+  function fecharModal(){
+    modalDetalhe.classList.remove("mostrar");
+  }
+  fecharModalDetalhe.addEventListener("click", fecharModal);
+  modalDetalhe.addEventListener("click", function(ev){
+    if (ev.target === modalDetalhe) fecharModal();
+  });
+
+  function moverSolicitacao(id, novoStatus, botaoClicado){
+    var senha = obterSenhaSalva();
+    if (!senha) return;
+
+    var botoes = modalBotoesMover.querySelectorAll("button");
+    botoes.forEach(function(b){ b.disabled = true; });
+    modalAviso.classList.remove("mostrar");
+
+    var url = SCRIPT_URL + "?acao=atualizarStatus" +
+      "&senha=" + encodeURIComponent(senha) +
+      "&id=" + encodeURIComponent(id) +
+      "&status=" + encodeURIComponent(novoStatus);
+
+    jsonp(url, 12000,
+      function(dados){
+        botoes.forEach(function(b){ b.disabled = false; });
+        if (dados && dados.ok){
+          // Atualiza localmente e re-renderiza sem precisar buscar tudo de novo.
+          solicitacoesAtuais = solicitacoesAtuais.map(function(s){
+            if (s.id === id) s.status = novoStatus;
+            return s;
+          });
+          renderizarQuadro();
+          fecharModal();
+        } else {
+          modalAviso.textContent = (dados && dados.error) || "Não foi possível mover a solicitação.";
+          modalAviso.classList.add("mostrar");
+        }
+      },
+      function(){
+        botoes.forEach(function(b){ b.disabled = false; });
+        modalAviso.textContent = "Sem conexão agora. Tente novamente.";
+        modalAviso.classList.add("mostrar");
+      }
+    );
+  }
+
+  // ============================================================
+  // Início: se já tem senha salva neste aparelho, entra direto.
+  // ============================================================
+  if (obterSenhaSalva()){
+    mostrarApp();
+  } else {
+    mostrarLogin();
+  }
+
+})();
+</script>
+</body>
+</html>
