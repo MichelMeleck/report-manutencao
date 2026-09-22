@@ -465,13 +465,18 @@
       <span class="nome">Cheiro Verde Ambiental</span>
     </div>
     <h1>Painel de Manutenção</h1>
-    <p class="sub">Área da equipe de gestão. Digite a senha do painel para continuar.</p>
+    <p class="sub">Área da equipe de gestão. Entre com o mesmo login usado no formulário de manutenção.</p>
 
     <form id="formularioLogin" novalidate>
-      <div class="campo">
-        <label for="senhaPainel">Senha do painel</label>
-        <input type="password" id="senhaPainel" name="senhaPainel" autocomplete="current-password" placeholder="Digite a senha" required>
+      <div class="campo" style="margin-bottom:12px">
+        <label for="usuarioPainel">Usuário</label>
+        <input type="text" id="usuarioPainel" name="usuarioPainel" autocomplete="username" autocapitalize="words" placeholder="Primeiro Nome" required>
       </div>
+      <div class="campo">
+        <label for="senhaPainel">Senha</label>
+        <input type="password" id="senhaPainel" name="senhaPainel" inputmode="numeric" autocomplete="current-password" placeholder="Senha de 6 dígitos" maxlength="6" required>
+      </div>
+      <p class="sub" style="text-align:left;font-size:12.5px;margin:10px 2px 0">Usuário é o seu primeiro nome. Senha é o código de 6 dígitos cadastrado para você. Só funciona se você tiver acesso liberado ao painel.</p>
 
       <div class="erro-msg" id="erroLogin"></div>
 
@@ -494,7 +499,10 @@
           <circle cx="16.5" cy="16.5" r="1.4" fill="#fff"/>
         </svg>
       </span>
-      <h1>Painel de Manutenção</h1>
+      <div>
+        <h1>Painel de Manutenção</h1>
+        <div id="nomeGestorLogado" style="font-size:11.5px;color:var(--texto-suave);font-weight:600"></div>
+      </div>
     </div>
     <div class="acoes">
       <button type="button" class="botao-icone" id="botaoAtualizar">
@@ -528,6 +536,7 @@
     <div class="linha-detalhe"><span class="rotulo">Tipo</span><span class="valor" id="modalTipo">–</span></div>
     <div class="linha-detalhe"><span class="rotulo">Enviado em</span><span class="valor" id="modalData">–</span></div>
     <div class="linha-detalhe"><span class="rotulo">Descrição</span><span class="valor" id="modalDescricao">–</span></div>
+    <div class="linha-detalhe" id="modalAtualizadoPorWrap" style="display:none"><span class="rotulo">Atualizado por</span><span class="valor" id="modalAtualizadoPor">–</span></div>
 
     <div id="modalFotosWrap" style="display:none">
       <div class="mover-titulo" style="margin-top:16px">Fotos</div>
@@ -551,7 +560,7 @@
   // ============================================================
   var SCRIPT_URL = "https://script.google.com/macros/s/AKfycby6NtZcj5s2dKyFTNgGRHT4zberx2M_NZ6cV4dmNQ6FbCBZYIecDbV2ED4jd-JfbrRQOQ/exec";
 
-  var CHAVE_SENHA = "cva_painel_senha_v1";
+  var CHAVE_SESSAO = "cva_painel_sessao_v2";
   var INTERVALO_ATUALIZACAO_MS = 45000;
 
   var COLUNAS = [
@@ -564,12 +573,14 @@
   // ---------- elementos: login ----------
   var telaLogin = document.getElementById("telaLogin");
   var formularioLogin = document.getElementById("formularioLogin");
+  var campoUsuario = document.getElementById("usuarioPainel");
   var campoSenha = document.getElementById("senhaPainel");
   var erroLogin = document.getElementById("erroLogin");
   var botaoLogin = document.getElementById("botaoLogin");
 
   // ---------- elementos: painel ----------
   var app = document.getElementById("app");
+  var nomeGestorLogado = document.getElementById("nomeGestorLogado");
   var botaoAtualizar = document.getElementById("botaoAtualizar");
   var botaoSair = document.getElementById("botaoSair");
   var carregandoQuadro = document.getElementById("carregandoQuadro");
@@ -586,6 +597,8 @@
   var modalTipo = document.getElementById("modalTipo");
   var modalData = document.getElementById("modalData");
   var modalDescricao = document.getElementById("modalDescricao");
+  var modalAtualizadoPorWrap = document.getElementById("modalAtualizadoPorWrap");
+  var modalAtualizadoPor = document.getElementById("modalAtualizadoPor");
   var modalFotosWrap = document.getElementById("modalFotosWrap");
   var modalFotosGrid = document.getElementById("modalFotosGrid");
   var modalBotoesMover = document.getElementById("modalBotoesMover");
@@ -634,14 +647,19 @@
     document.head.appendChild(tagScript);
   }
 
-  function obterSenhaSalva(){
-    try { return localStorage.getItem(CHAVE_SENHA) || ""; } catch(e){ return ""; }
+  function obterSessaoPainel(){
+    try {
+      var bruto = localStorage.getItem(CHAVE_SESSAO);
+      if (!bruto) return null;
+      var sessao = JSON.parse(bruto);
+      return (sessao && sessao.usuario && sessao.senha) ? sessao : null;
+    } catch(e){ return null; }
   }
-  function salvarSenha(senha){
-    try { localStorage.setItem(CHAVE_SENHA, senha); } catch(e){}
+  function salvarSessaoPainel(usuario, senha, nome){
+    try { localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ usuario: usuario, senha: senha, nome: nome })); } catch(e){}
   }
-  function limparSenha(){
-    try { localStorage.removeItem(CHAVE_SENHA); } catch(e){}
+  function limparSessaoPainel(){
+    try { localStorage.removeItem(CHAVE_SESSAO); } catch(e){}
   }
 
   function mostrarErroLogin(texto){
@@ -685,9 +703,10 @@
     ev.preventDefault();
     esconderErroLogin();
 
+    var usuario = campoUsuario.value.trim();
     var senha = campoSenha.value.trim();
-    if (!senha){
-      mostrarErroLogin("Digite a senha do painel.");
+    if (!usuario || !senha){
+      mostrarErroLogin("Preencha usuário e senha.");
       return;
     }
     if (SCRIPT_URL.indexOf("COLE_AQUI") !== -1){
@@ -698,11 +717,11 @@
     botaoLogin.disabled = true;
     botaoLogin.classList.add("carregando");
 
-    buscarSolicitacoes(senha, function(ok, dados){
+    buscarSolicitacoes(usuario, senha, function(ok, dados){
       botaoLogin.disabled = false;
       botaoLogin.classList.remove("carregando");
       if (ok){
-        salvarSenha(senha);
+        salvarSessaoPainel(usuario, senha, dados.nome || usuario);
         campoSenha.value = "";
         solicitacoesAtuais = dados.solicitacoes || [];
         renderizarQuadro();
@@ -714,12 +733,15 @@
   });
 
   botaoSair.addEventListener("click", function(){
-    limparSenha();
+    limparSessaoPainel();
+    campoUsuario.value = "";
     mostrarLogin();
   });
 
-  function buscarSolicitacoes(senha, callback){
-    var url = SCRIPT_URL + "?acao=listarSolicitacoes&senha=" + encodeURIComponent(senha);
+  function buscarSolicitacoes(usuario, senha, callback){
+    var url = SCRIPT_URL + "?acao=listarSolicitacoes" +
+      "&usuario=" + encodeURIComponent(usuario) +
+      "&senha=" + encodeURIComponent(senha);
     jsonp(url, 12000,
       function(dados){
         if (dados && dados.ok){
@@ -735,8 +757,8 @@
   }
 
   function carregarSolicitacoes(atualizacaoSilenciosa){
-    var senha = obterSenhaSalva();
-    if (!senha){ mostrarLogin(); return; }
+    var sessao = obterSessaoPainel();
+    if (!sessao){ mostrarLogin(); return; }
 
     if (!atualizacaoSilenciosa){
       carregandoQuadro.style.display = "block";
@@ -746,18 +768,19 @@
       botaoAtualizar.classList.add("girando");
     }
 
-    buscarSolicitacoes(senha, function(ok, dados){
+    buscarSolicitacoes(sessao.usuario, sessao.senha, function(ok, dados){
       botaoAtualizar.classList.remove("girando");
       if (ok){
         solicitacoesAtuais = dados.solicitacoes || [];
+        if (dados.nome) nomeGestorLogado.textContent = "Olá, " + dados.nome;
         renderizarQuadro();
         carregandoQuadro.style.display = "none";
         erroQuadro.style.display = "none";
         quadro.style.display = "flex";
       } else {
-        // Senha pode ter sido trocada no script — volta pro login.
-        if (dados && /senha/i.test(dados.error || "")){
-          limparSenha();
+        // Usuário/senha pode ter sido trocado ou o acesso removido — volta pro login.
+        if (dados && /inv[aá]lid|acesso/i.test(dados.error || "")){
+          limparSessaoPainel();
           mostrarLogin();
           mostrarErroLogin(dados.error);
           return;
@@ -886,6 +909,13 @@
     modalData.textContent = item.dataHoraEnvio || "–";
     modalDescricao.textContent = item.descricao || "–";
 
+    if (item.atualizadoPor){
+      modalAtualizadoPorWrap.style.display = "flex";
+      modalAtualizadoPor.textContent = item.atualizadoPor;
+    } else {
+      modalAtualizadoPorWrap.style.display = "none";
+    }
+
     if (item.fotos && item.fotos.length){
       modalFotosWrap.style.display = "block";
       modalFotosGrid.innerHTML = "";
@@ -931,15 +961,16 @@
   });
 
   function moverSolicitacao(id, novoStatus, botaoClicado){
-    var senha = obterSenhaSalva();
-    if (!senha) return;
+    var sessao = obterSessaoPainel();
+    if (!sessao) return;
 
     var botoes = modalBotoesMover.querySelectorAll("button");
     botoes.forEach(function(b){ b.disabled = true; });
     modalAviso.classList.remove("mostrar");
 
     var url = SCRIPT_URL + "?acao=atualizarStatus" +
-      "&senha=" + encodeURIComponent(senha) +
+      "&usuario=" + encodeURIComponent(sessao.usuario) +
+      "&senha=" + encodeURIComponent(sessao.senha) +
       "&id=" + encodeURIComponent(id) +
       "&status=" + encodeURIComponent(novoStatus);
 
@@ -949,7 +980,10 @@
         if (dados && dados.ok){
           // Atualiza localmente e re-renderiza sem precisar buscar tudo de novo.
           solicitacoesAtuais = solicitacoesAtuais.map(function(s){
-            if (s.id === id) s.status = novoStatus;
+            if (s.id === id){
+              s.status = novoStatus;
+              s.atualizadoPor = sessao.nome;
+            }
             return s;
           });
           renderizarQuadro();
@@ -968,9 +1002,9 @@
   }
 
   // ============================================================
-  // Início: se já tem senha salva neste aparelho, entra direto.
+  // Início: se já tem sessão salva neste aparelho, entra direto.
   // ============================================================
-  if (obterSenhaSalva()){
+  if (obterSessaoPainel()){
     mostrarApp();
   } else {
     mostrarLogin();
