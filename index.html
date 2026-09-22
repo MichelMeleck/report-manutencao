@@ -112,7 +112,6 @@
 
   input[type=text],
   input[type=number],
-  input[type=date],
   select,
   textarea{
     width:100%;
@@ -139,6 +138,18 @@
   }
   input:focus, select:focus, textarea:focus{ outline:none; }
   .campo:focus-within{ border-color:var(--verde); }
+
+  /* Data fixa (não editável) */
+  .campo-estatico{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:16px;
+    padding:6px 0 2px;
+    color:var(--texto);
+    font-variant-numeric:tabular-nums;
+  }
+  .campo-estatico svg{ flex:none; color:var(--texto-suave); }
 
   .outro-wrap{ margin-top:10px; display:none; }
   .outro-wrap.mostrar{ display:block; }
@@ -229,36 +240,57 @@
   }
   .erro-msg.mostrar{ display:block; }
 
-  /* Tela de sucesso */
-  .sucesso{
+  /* Popup de sucesso */
+  .modal-overlay{
     display:none;
-    text-align:center;
-    padding-top:18vh;
+    position:fixed;
+    inset:0;
+    background:rgba(15,20,17,.55);
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    z-index:1000;
   }
-  .sucesso.mostrar{ display:block; }
-  .sucesso .icone{
-    width:64px; height:64px;
+  .modal-overlay.mostrar{ display:flex; }
+  .modal-card{
+    background:var(--card);
+    border-radius:20px;
+    padding:32px 26px 26px;
+    max-width:320px;
+    width:100%;
+    text-align:center;
+    box-shadow:0 12px 32px rgba(0,0,0,.25);
+    animation:aparecer .22s ease-out;
+  }
+  @keyframes aparecer{
+    from{ opacity:0; transform:scale(.92) translateY(6px); }
+    to{ opacity:1; transform:scale(1) translateY(0); }
+  }
+  .modal-card .icone{
+    width:60px; height:60px;
     border-radius:50%;
     background:var(--verde-claro);
     color:var(--verde);
     display:flex; align-items:center; justify-content:center;
-    margin:0 auto 20px;
+    margin:0 auto 18px;
   }
-  .sucesso h2{ margin:0 0 8px; font-size:21px; }
-  .sucesso p{ color:var(--texto-suave); font-size:14.5px; margin:0 0 28px; }
-  .sucesso button{
-    padding:13px 22px;
+  .modal-card h2{ margin:0 0 8px; font-size:19px; }
+  .modal-card p{ color:var(--texto-suave); font-size:14px; line-height:1.5; margin:0 0 22px; }
+  .modal-card button{
+    padding:12px 22px;
     border-radius:12px;
-    border:1.5px solid var(--verde);
-    background:transparent;
-    color:var(--verde);
+    border:none;
+    background:var(--verde);
+    color:#fff;
     font-weight:700;
     font-size:14.5px;
     cursor:pointer;
+    width:100%;
   }
 
   @media (prefers-reduced-motion: reduce){
     .spinner{ animation:none; }
+    .modal-card{ animation:none; }
   }
 </style>
 </head>
@@ -293,8 +325,11 @@
         <input type="text" id="placa" name="placa" placeholder="ABC1D23" required maxlength="8" style="text-transform:uppercase">
       </div>
       <div class="campo">
-        <label for="data">Data <span class="obrig">*</span></label>
-        <input type="date" id="data" name="data" required>
+        <label>Data</label>
+        <div class="campo-estatico" id="dataExibicao">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="5" width="17" height="16" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 3v4M16 3v4M3.5 10h17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <span id="dataTexto">–</span>
+        </div>
       </div>
     </div>
 
@@ -349,15 +384,17 @@
     </button>
   </form>
 
-  <div class="sucesso" id="telaSucesso">
+</div>
+
+<div class="modal-overlay" id="modalSucesso">
+  <div class="modal-card">
     <div class="icone">
-      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
     <h2>Solicitação enviada</h2>
     <p>A equipe de manutenção vai receber os dados e as fotos por e-mail.</p>
-    <button type="button" id="botaoNova">Enviar outra solicitação</button>
+    <button type="button" id="botaoFecharModal">OK</button>
   </div>
-
 </div>
 
 <script>
@@ -374,31 +411,42 @@
   var MAX_FOTOS = 5;
   var LADO_MAX_PX = 1600;
   var QUALIDADE_JPEG = 0.72;
+  var FECHAMENTO_AUTOMATICO_MS = 3500;
 
   var form = document.getElementById("formulario");
   var campoTipo = document.getElementById("tipo");
   var outroWrap = document.getElementById("outroWrap");
   var campoTipoOutro = document.getElementById("tipoOutro");
-  var campoData = document.getElementById("data");
+  var dataTexto = document.getElementById("dataTexto");
   var campoPlaca = document.getElementById("placa");
   var inputFoto = document.getElementById("inputFoto");
   var botaoFoto = document.getElementById("botaoFoto");
   var fotosGrid = document.getElementById("fotosGrid");
   var erroMsg = document.getElementById("erroMsg");
   var botaoEnviar = document.getElementById("botaoEnviar");
-  var telaSucesso = document.getElementById("telaSucesso");
-  var botaoNova = document.getElementById("botaoNova");
+  var modalSucesso = document.getElementById("modalSucesso");
+  var botaoFecharModal = document.getElementById("botaoFecharModal");
 
   var fotos = []; // { filename, mimeType, base64, previewUrl }
+  var dataAtualISO = "";
+  var timerFechamentoModal = null;
 
-  // Data padrão = hoje (horário local do aparelho)
+  // Data da solicitação = sempre o dia de hoje (não editável pelo motorista)
   function hojeISO(){
     var d = new Date();
     var m = String(d.getMonth() + 1).padStart(2, "0");
     var dia = String(d.getDate()).padStart(2, "0");
     return d.getFullYear() + "-" + m + "-" + dia;
   }
-  campoData.value = hojeISO();
+  function formatarDataBR(iso){
+    var partes = iso.split("-");
+    return partes.length === 3 ? (partes[2] + "/" + partes[1] + "/" + partes[0]) : iso;
+  }
+  function atualizarData(){
+    dataAtualISO = hojeISO();
+    dataTexto.textContent = formatarDataBR(dataAtualISO);
+  }
+  atualizarData();
 
   // Placa em maiúsculas
   campoPlaca.addEventListener("input", function(){
@@ -496,6 +544,31 @@
     erroMsg.classList.remove("mostrar");
   }
 
+  function limparFormulario(){
+    form.reset();
+    fotos = [];
+    renderizarFotos();
+    outroWrap.classList.remove("mostrar");
+    campoTipoOutro.required = false;
+    atualizarData();
+    esconderErro();
+  }
+
+  function abrirModalSucesso(){
+    modalSucesso.classList.add("mostrar");
+    botaoFecharModal.focus();
+    if (timerFechamentoModal) clearTimeout(timerFechamentoModal);
+    timerFechamentoModal = setTimeout(fecharModalSucesso, FECHAMENTO_AUTOMATICO_MS);
+  }
+  function fecharModalSucesso(){
+    modalSucesso.classList.remove("mostrar");
+    if (timerFechamentoModal){ clearTimeout(timerFechamentoModal); timerFechamentoModal = null; }
+  }
+  botaoFecharModal.addEventListener("click", fecharModalSucesso);
+  modalSucesso.addEventListener("click", function(ev){
+    if (ev.target === modalSucesso) fecharModalSucesso();
+  });
+
   form.addEventListener("submit", function(ev){
     ev.preventDefault();
     esconderErro();
@@ -522,7 +595,7 @@
       placa: campoPlaca.value.trim(),
       km: document.getElementById("km").value,
       tipo: tipoFinal,
-      data: formatarDataBR(campoData.value),
+      data: formatarDataBR(dataAtualISO),
       descricao: document.getElementById("descricao").value.trim(),
       fotos: fotos.map(function(f){
         return { filename: f.filename, mimeType: f.mimeType, base64: f.base64 };
@@ -539,8 +612,8 @@
       body: JSON.stringify(payload)
     })
     .then(function(){
-      form.hidden = true;
-      telaSucesso.classList.add("mostrar");
+      limparFormulario();
+      abrirModalSucesso();
     })
     .catch(function(){
       mostrarErro("Não foi possível enviar agora. Verifique sua conexão com a internet e tente novamente.");
@@ -549,22 +622,6 @@
       botaoEnviar.disabled = false;
       botaoEnviar.classList.remove("carregando");
     });
-  });
-
-  function formatarDataBR(iso){
-    var partes = iso.split("-");
-    return partes.length === 3 ? (partes[2] + "/" + partes[1] + "/" + partes[0]) : iso;
-  }
-
-  botaoNova.addEventListener("click", function(){
-    form.reset();
-    fotos = [];
-    renderizarFotos();
-    campoData.value = hojeISO();
-    outroWrap.classList.remove("mostrar");
-    form.hidden = false;
-    telaSucesso.classList.remove("mostrar");
-    esconderErro();
   });
 
 })();
