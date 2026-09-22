@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Ficha de Veículos – Cheiro Verde Ambiental</title>
-<meta name="description" content="Diretório e histórico de manutenção de cada veículo da frota.">
+<title>Checklist Semanal de Veículo – Cheiro Verde Ambiental</title>
+<meta name="description" content="Checklist semanal de vistoria do veículo, com fotos e assinatura.">
 <meta name="theme-color" content="#1F7A4D">
-<meta name="robots" content="noindex, nofollow">
 
 <style>
   :root{
@@ -20,9 +19,6 @@
     --borda:#DCE5DE;
     --erro:#C24A3B;
     --erro-claro:#FBEAE7;
-    --amarelo:#B0821F;
-    --amarelo-claro:#FBF3E1;
-    --cinza-claro:#EDEFEC;
     --sombra:0 1px 3px rgba(27,36,32,.08), 0 6px 16px rgba(27,36,32,.06);
     color-scheme: light dark;
   }
@@ -35,219 +31,339 @@
       --borda:#2A362C;
       --verde-claro:#1C2C21;
       --erro-claro:#301F1D;
-      --amarelo-claro:#2C2416;
-      --cinza-claro:#232B25;
       --sombra:0 1px 3px rgba(0,0,0,.5), 0 6px 16px rgba(0,0,0,.35);
     }
   }
   *{ box-sizing:border-box; }
-  html,body{ margin:0; padding:0; height:100%; }
+  html,body{ margin:0; padding:0; }
   body{
     background:var(--bg);
     color:var(--texto);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     -webkit-font-smoothing:antialiased;
-    min-height:100%;
+    padding:0 16px;
     padding-top:env(safe-area-inset-top,0px);
     padding-bottom:env(safe-area-inset-bottom,0px);
+    min-height:100%;
   }
-  a{ color:var(--verde); text-decoration:none; }
+  .wrap{ max-width:560px; margin:0 auto; padding-bottom:48px; }
 
-  /* ---------- tela de login ---------- */
-  .tela-login{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
-  .caixa-login{ width:100%; max-width:360px; }
-  .marca{ display:flex; align-items:center; gap:10px; margin-bottom:22px; justify-content:center; }
-  .marca .selo{ width:38px; height:38px; border-radius:10px; background:var(--verde); display:flex; align-items:center; justify-content:center; flex:none; }
+  header{ padding-top:28px; padding-bottom:20px; }
+  .marca{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .marca .selo{
+    width:38px; height:38px; border-radius:10px;
+    background:var(--verde);
+    display:flex; align-items:center; justify-content:center;
+    flex:none;
+  }
   .marca .selo svg{ width:20px; height:20px; }
-  .marca .nome{ font-size:13px; font-weight:700; letter-spacing:.02em; color:var(--texto-suave); text-transform:uppercase; }
-  .caixa-login h1{ font-size:21px; margin:0 0 6px; text-align:center; }
-  .caixa-login .sub{ color:var(--texto-suave); font-size:14px; text-align:center; margin:0 0 22px; line-height:1.5; }
-  .campo{ background:var(--card); border:1px solid var(--borda); border-radius:14px; padding:14px 16px; box-shadow:var(--sombra); }
-  .campo label{ display:block; font-size:13px; font-weight:600; color:var(--texto-suave); margin-bottom:8px; }
-  .campo input{ width:100%; font-size:16px; font-family:inherit; color:var(--texto); background:transparent; border:none; padding:6px 0 2px; outline:none; }
+  .marca .nome{
+    font-size:13px; font-weight:700; letter-spacing:.02em;
+    color:var(--texto-suave); text-transform:uppercase;
+  }
+  h1{ font-size:23px; line-height:1.25; margin:0 0 6px; text-wrap:balance; }
+  .sub{ color:var(--texto-suave); font-size:14.5px; line-height:1.5; margin:0; }
+
+  form{ display:flex; flex-direction:column; gap:16px; }
+
+  .campo{
+    background:var(--card);
+    border:1px solid var(--borda);
+    border-radius:14px;
+    padding:14px 16px;
+    box-shadow:var(--sombra);
+  }
+  .campo label{
+    display:block; font-size:13px; font-weight:600;
+    color:var(--texto-suave); margin-bottom:8px;
+  }
+  .campo label .obrig{ color:var(--erro); }
+
+  input[type=text], input[type=password]{
+    width:100%; font-size:16px; font-family:inherit;
+    color:var(--texto); background:transparent; border:none;
+    padding:6px 0 2px; outline:none;
+  }
+  input:focus{ outline:none; }
   .campo:focus-within{ border-color:var(--verde); }
-  .erro-msg{ display:none; background:var(--erro-claro); color:var(--erro); border-radius:12px; padding:12px 14px; font-size:13.5px; line-height:1.5; margin-top:14px; }
-  .erro-msg.mostrar{ display:block; }
-  button.enviar{ width:100%; padding:15px; border:none; border-radius:14px; background:var(--verde); color:#fff; font-size:16px; font-weight:700; letter-spacing:.01em; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; margin-top:14px; }
+
+  #placaChecklist{ text-transform:uppercase; letter-spacing:.04em; font-variant-numeric:tabular-nums; }
+
+  /* Cartão do motorista / placa atual */
+  .cartao-usuario{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  }
+  .cartao-usuario .info{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .cartao-usuario .rotulo{
+    font-size:12px; font-weight:600; color:var(--texto-suave);
+    text-transform:uppercase; letter-spacing:.02em;
+  }
+  .cartao-usuario .nome{
+    font-size:16.5px; font-weight:700;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .cartao-usuario .acoes{ display:flex; gap:8px; flex:none; }
+  .botao-sair, .botao-trocar{
+    background:none; border:1px solid var(--borda); color:var(--texto-suave);
+    font-size:12.5px; font-weight:700; padding:8px 12px;
+    border-radius:10px; cursor:pointer;
+  }
+  .botao-sair:active, .botao-trocar:active{ background:var(--verde-claro); }
+
+  button.enviar{
+    width:100%; padding:16px; border:none; border-radius:14px;
+    background:var(--verde); color:#fff; font-size:16px; font-weight:700;
+    letter-spacing:.01em; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+  }
   button.enviar:active{ background:var(--verde-escuro); }
   button.enviar:disabled{ opacity:.6; cursor:default; }
-  .spinner{ width:16px; height:16px; border-radius:50%; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; animation:girar .7s linear infinite; display:none; }
+
+  .spinner{
+    width:16px; height:16px; border-radius:50%;
+    border:2px solid rgba(255,255,255,.4); border-top-color:#fff;
+    animation:girar .7s linear infinite; display:none;
+  }
   button.enviar.carregando .spinner{ display:inline-block; }
   button.enviar.carregando .rotulo-normal{ display:none; }
   @keyframes girar{ to{ transform:rotate(360deg); } }
 
-  /* ---------- app ---------- */
-  .app{ display:none; min-height:100vh; flex-direction:column; }
-  .app.mostrar{ display:flex; }
+  .erro-msg{
+    display:none; background:var(--erro-claro); color:var(--erro);
+    border-radius:12px; padding:12px 14px; font-size:13.5px; line-height:1.5;
+  }
+  .erro-msg.mostrar{ display:block; }
 
-  .topo{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; background:var(--card); border-bottom:1px solid var(--borda); position:sticky; top:0; z-index:10; flex-wrap:wrap; }
-  .topo .marca{ margin:0; justify-content:flex-start; }
-  .topo h1{ font-size:17px; margin:0; }
-  .topo .acoes{ display:flex; gap:8px; align-items:center; }
-  .botao-icone{ background:none; border:1px solid var(--borda); color:var(--texto-suave); font-size:13px; font-weight:700; padding:9px 14px; border-radius:10px; cursor:pointer; display:flex; align-items:center; gap:6px; }
-  .botao-icone:active{ background:var(--bg); }
+  .ajuda-login{ font-size:12.5px; color:var(--texto-suave); line-height:1.5; margin:2px 4px 0; }
 
-  .conteudo{ flex-grow:1; padding:20px 18px 40px; max-width:1200px; width:100%; margin:0 auto; }
+  /* Seção com título dentro da tela do checklist */
+  .titulo-secao{
+    font-size:15px; font-weight:700; margin:6px 2px -4px;
+  }
+  .subtitulo-secao{ font-size:12.5px; color:var(--texto-suave); margin:0 2px 2px; line-height:1.5; }
 
-  .campo-busca{ display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--borda); border-radius:12px; padding:11px 14px; margin-bottom:16px; }
-  .campo-busca input{ flex-grow:1; border:none; background:transparent; font-size:14.5px; font-family:inherit; color:var(--texto); outline:none; }
+  /* Perguntas Sim/Não */
+  .pergunta-card label{
+    margin-bottom:0; font-size:14.5px; font-weight:600; color:var(--texto); line-height:1.4;
+  }
+  .resposta-toggle{ display:flex; gap:8px; margin-top:12px; }
+  .resposta-btn{
+    flex:1; padding:10px; border-radius:10px; border:1.5px solid var(--borda);
+    background:transparent; color:var(--texto); font-weight:700; font-size:14px; cursor:pointer;
+  }
+  .resposta-btn.selecionado{ background:var(--verde-claro); border-color:var(--verde); color:var(--verde-escuro); }
+  .resposta-btn.selecionado.problema{ background:var(--erro-claro); border-color:var(--erro); color:var(--erro); }
+  .pergunta-foto-wrap{ margin-top:12px; }
 
-  .stats{ display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:16px; }
-  .stat{ background:var(--card); border:1px solid var(--borda); border-radius:14px; padding:14px 16px; }
-  .stat .rotulo{ font-size:11.5px; font-weight:700; color:var(--texto-suave); text-transform:uppercase; letter-spacing:.03em; }
-  .stat .valor{ margin-top:6px; font-size:24px; font-weight:800; }
-  .stat.amarelo{ background:var(--amarelo-claro); border-color:transparent; }
-  .stat.amarelo .rotulo,.stat.amarelo .valor{ color:#8A661A; }
-  .stat.verde{ background:var(--verde-claro); border-color:transparent; }
-  .stat.verde .rotulo,.stat.verde .valor{ color:var(--verde-escuro); }
+  /* Fotos: slots rotulados (fotos gerais e foto de item com problema) */
+  .fotos-gerais-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(136px,1fr));
+    gap:10px; margin-top:10px;
+  }
+  .foto-slot{
+    border:1.5px dashed var(--borda); border-radius:12px; padding:10px; background:var(--verde-claro);
+  }
+  .foto-slot-rotulo{
+    font-size:12px; font-weight:700; color:var(--texto-suave); margin-bottom:8px; line-height:1.35;
+  }
+  .foto-slot-area{ display:flex; flex-direction:column; gap:6px; }
+  .foto-slot-area img{ width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; display:block; }
+  .foto-slot-botao, .foto-slot-trocar{
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    width:100%; padding:10px; border-radius:8px; border:none;
+    background:var(--card); color:var(--verde-escuro); font-weight:700; font-size:12.5px; cursor:pointer;
+  }
+  input[type=file]{ display:none; }
 
-  .chips{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
-  .chip{ font-size:13px; font-weight:700; padding:8px 14px; border-radius:20px; background:var(--card); color:var(--texto-suave); border:1px solid var(--borda); cursor:pointer; }
-  .chip.ativo{ background:var(--texto); color:var(--bg); border-color:var(--texto); }
+  /* Assinatura */
+  .assinatura-mensagem{
+    font-size:13.5px; color:var(--texto); line-height:1.5;
+    background:var(--verde-claro); border-radius:12px; padding:12px 14px; margin-top:10px;
+  }
+  .assinatura-canvas-wrap{
+    border:1.5px solid var(--borda); border-radius:12px; overflow:hidden;
+    background:#fff; margin-top:12px; touch-action:none;
+  }
+  canvas#canvasAssinatura{ display:block; width:100%; height:180px; touch-action:none; }
+  .botao-limpar-assinatura{
+    margin-top:10px; background:none; border:1px solid var(--borda);
+    color:var(--texto-suave); font-size:13px; font-weight:700;
+    padding:8px 14px; border-radius:10px; cursor:pointer;
+  }
 
-  .grade{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:20px; }
-  .cartao-veiculo{ display:flex; flex-direction:column; background:var(--card); border:1px solid var(--borda); border-radius:16px; overflow:hidden; text-align:left; cursor:pointer; padding:0; font-family:inherit; color:inherit; }
-  .cartao-veiculo:active{ opacity:.92; }
-  .foto-veiculo{ position:relative; height:140px; background:var(--verde-claro); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  .foto-veiculo img{ width:100%; height:100%; object-fit:cover; }
-  .selo-status{ position:absolute; right:12px; bottom:12px; font-size:11px; font-weight:700; padding:5px 10px; border-radius:20px; background:var(--card); box-shadow:0 2px 6px rgba(0,0,0,.14); }
-  .corpo-cartao{ padding:16px 18px 18px; display:flex; flex-direction:column; gap:9px; flex-grow:1; }
-  .rotulo-placa{ font-size:11px; font-weight:700; color:var(--texto-suave); text-transform:uppercase; letter-spacing:.04em; }
-  .valor-placa{ margin-top:2px; font-size:20px; font-weight:800; letter-spacing:.02em; }
-  .linha-info{ display:flex; justify-content:space-between; gap:10px; font-size:13px; }
-  .linha-info .rot{ color:var(--texto-suave); flex-shrink:0; }
-  .linha-info .val{ font-weight:600; text-align:right; }
-  .linha-atualizacao{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--texto-suave); padding-top:9px; border-top:1px solid var(--borda); }
-  .ponto{ width:7px; height:7px; border-radius:50%; display:inline-block; flex-shrink:0; }
-  .ver-ficha{ margin-top:auto; padding-top:4px; font-size:13px; font-weight:700; color:var(--verde); }
+  .bloqueio-info{
+    background:var(--erro-claro); color:var(--erro); border-radius:12px;
+    padding:12px 14px; font-size:13.5px; line-height:1.5; margin-top:10px;
+  }
 
-  .vazio{ text-align:center; padding:60px 20px; color:var(--texto-suave); font-size:14px; }
-  .estado-carregando,.estado-erro{ text-align:center; padding:60px 20px; color:var(--texto-suave); font-size:14px; }
-  .estado-erro{ color:var(--erro); }
-  .estado-erro button{ margin-top:14px; border:1px solid var(--erro); background:none; color:var(--erro); font-weight:700; font-size:13px; padding:9px 16px; border-radius:10px; cursor:pointer; }
+  /* Popups */
+  .modal-overlay{
+    display:none; position:fixed; inset:0; background:rgba(15,20,17,.55);
+    align-items:center; justify-content:center; padding:24px; z-index:1000;
+  }
+  .modal-overlay.mostrar{ display:flex; }
+  .modal-card{
+    background:var(--card); border-radius:20px; padding:32px 26px 26px;
+    max-width:340px; width:100%; text-align:center;
+    box-shadow:0 12px 32px rgba(0,0,0,.25); animation:aparecer .22s ease-out;
+  }
+  @keyframes aparecer{
+    from{ opacity:0; transform:scale(.92) translateY(6px); }
+    to{ opacity:1; transform:scale(1) translateY(0); }
+  }
+  .modal-card .icone{
+    width:60px; height:60px; border-radius:50%;
+    background:var(--verde-claro); color:var(--verde);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 18px;
+  }
+  .modal-card .icone.icone-erro{ background:var(--erro-claro); color:var(--erro); }
+  .modal-card button.botao-secundario{ background:none; border:1px solid var(--borda); color:var(--texto); }
+  .modal-card h2{ margin:0 0 8px; font-size:19px; }
+  .modal-card p{ color:var(--texto-suave); font-size:14px; line-height:1.5; margin:0 0 22px; white-space:pre-line; }
+  .modal-card button{
+    padding:12px 22px; border-radius:12px; border:none;
+    background:var(--verde); color:#fff; font-weight:700; font-size:14.5px; cursor:pointer; width:100%;
+  }
 
-  /* ---------- ficha do veículo ---------- */
-  .voltar{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:700; color:var(--texto-suave); margin-bottom:16px; background:none; border:none; cursor:pointer; padding:0; font-family:inherit; }
-
-  .cabecalho-ficha{ background:var(--card); border:1px solid var(--borda); border-radius:18px; padding:22px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-bottom:20px; }
-  .icone-veiculo{ width:56px; height:56px; border-radius:14px; background:var(--verde-claro); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  .titulo-ficha{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-  .titulo-ficha h1{ margin:0; font-size:24px; font-weight:800; letter-spacing:-.01em; }
-  .sub-ficha{ margin-top:4px; font-size:13px; color:var(--texto-suave); }
-
-  .kpis{ display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:12px; margin-bottom:20px; }
-
-  .titulo-secao{ font-size:16px; font-weight:800; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-
-  .linha-tempo-item{ display:flex; gap:16px; position:relative; }
-  .conector{ position:absolute; left:5px; top:16px; bottom:-20px; width:2px; background:var(--borda); }
-  .no-tempo{ width:12px; height:12px; border-radius:50%; margin-top:6px; box-shadow:0 0 0 4px var(--bg); flex-shrink:0; }
-  .cartao-historico{ flex-grow:1; background:var(--card); border:1px solid var(--borda); border-radius:14px; padding:16px 20px; margin-bottom:20px; }
-  .classificacao-dot{ width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; }
-
-  @media (max-width: 640px){
-    .topo h1{ display:none; }
-    .cabecalho-ficha{ flex-direction:column; align-items:flex-start; }
+  @media (prefers-reduced-motion: reduce){
+    .spinner{ animation:none; }
+    .modal-card{ animation:none; }
   }
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<div class="tela-login" id="telaLogin">
-  <div class="caixa-login">
+  <header>
     <div class="marca">
-      <div class="selo">
+      <span class="selo">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M3 16V7a1 1 0 0 1 1-1h9v10" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M13 10h4.2a1 1 0 0 1 .83.45L20 13.5V16" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="7.5" cy="16.5" r="1.8" stroke="#FFFFFF" stroke-width="1.7"/>
-          <circle cx="16.5" cy="16.5" r="1.8" stroke="#FFFFFF" stroke-width="1.7"/>
+          <path d="M3 13l1.6-5.2A2 2 0 0 1 6.5 6.3h11a2 2 0 0 1 1.9 1.4L21 13v6a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-1H6v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
+          <circle cx="7.5" cy="16.5" r="1.4" fill="#fff"/>
+          <circle cx="16.5" cy="16.5" r="1.4" fill="#fff"/>
         </svg>
-      </div>
+      </span>
       <span class="nome">Cheiro Verde Ambiental</span>
     </div>
-    <h1>Ficha de Veículos</h1>
-    <p class="sub">Entre com o mesmo usuário e senha do painel de gestão.</p>
+    <h1 id="tituloTela">Entrar</h1>
+    <p class="sub" id="subtituloTela">Faça login para preencher o checklist semanal do veículo.</p>
+  </header>
+
+  <!-- ===================== TELA DE LOGIN ===================== -->
+  <div id="telaLogin">
     <form id="formularioLogin" novalidate>
-      <div class="campo" style="margin-bottom:12px">
-        <label for="usuarioVeiculos">Usuário</label>
-        <input type="text" id="usuarioVeiculos" autocomplete="username" autocapitalize="words" placeholder="Primeiro Nome" required>
+      <div class="campo">
+        <label for="usuario">Usuário <span class="obrig">*</span></label>
+        <input type="text" id="usuario" name="usuario" autocomplete="username" autocapitalize="words" placeholder="Primeiro Nome" required>
       </div>
       <div class="campo">
-        <label for="senhaVeiculos">Senha</label>
-        <input type="password" id="senhaVeiculos" inputmode="numeric" autocomplete="current-password" placeholder="Código de 6 dígitos" required>
+        <label for="senha">Senha <span class="obrig">*</span></label>
+        <input type="password" id="senha" name="senha" inputmode="numeric" autocomplete="current-password" placeholder="Senha de 6 dígitos" maxlength="6" required>
       </div>
+      <p class="ajuda-login">Usuário é o seu primeiro nome. Senha é o mesmo código de 6 dígitos que você já usa no formulário de manutenção.</p>
+
       <div class="erro-msg" id="erroLogin"></div>
+
       <button type="submit" class="enviar" id="botaoLogin">
         <span class="spinner"></span>
         <span class="rotulo-normal">Entrar</span>
       </button>
     </form>
   </div>
-</div>
 
-<div class="app" id="app">
-  <div class="topo">
-    <div class="marca">
-      <div class="selo">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M3 16V7a1 1 0 0 1 1-1h9v10" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M13 10h4.2a1 1 0 0 1 .83.45L20 13.5V16" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="7.5" cy="16.5" r="1.8" stroke="#FFFFFF" stroke-width="1.7"/>
-          <circle cx="16.5" cy="16.5" r="1.8" stroke="#FFFFFF" stroke-width="1.7"/>
-        </svg>
+  <!-- ===================== TELA: ESCOLHER PLACA ===================== -->
+  <div id="telaPlaca" style="display:none">
+
+    <div class="campo cartao-usuario">
+      <div class="info">
+        <span class="rotulo">Motorista</span>
+        <span class="nome" id="nomeMotoristaPlaca">–</span>
       </div>
-      <span class="nome">Cheiro Verde Ambiental</span>
+      <div class="acoes">
+        <button type="button" class="botao-sair" id="botaoSairPlaca">Sair</button>
+      </div>
     </div>
-    <h1 id="tituloTopo">Diretório de veículos</h1>
-    <div class="acoes">
-      <button type="button" class="botao-icone" id="botaoAtualizar">Atualizar</button>
-      <button type="button" class="botao-icone" id="botaoSair">Sair</button>
-    </div>
+
+    <form id="formularioPlaca" novalidate>
+      <div class="campo">
+        <label for="placaChecklist">Placa do veículo <span class="obrig">*</span></label>
+        <input type="text" id="placaChecklist" name="placaChecklist" placeholder="AAA0A00" maxlength="8" autocapitalize="characters" autocomplete="off" required>
+      </div>
+      <p class="ajuda-login" style="margin-top:-10px">Formatos aceitos: AAA0000, AAA-0000 ou AAA0A00 (Mercosul).</p>
+
+      <div class="erro-msg" id="erroPlaca"></div>
+
+      <button type="submit" class="enviar" id="botaoContinuarPlaca">
+        <span class="spinner"></span>
+        <span class="rotulo-normal">Continuar</span>
+      </button>
+    </form>
   </div>
 
-  <div class="conteudo">
+  <!-- ===================== TELA: CHECKLIST ===================== -->
+  <div id="telaChecklist" style="display:none">
 
-    <div id="viewDiretorio">
-      <div class="campo-busca">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="7" stroke="#5B6B62" stroke-width="1.8"/><path d="M20 20l-3.5-3.5" stroke="#5B6B62" stroke-width="1.8" stroke-linecap="round"/></svg>
-        <input type="text" id="campoBuscaVeiculo" placeholder="Buscar por placa, veículo, tipo ou motorista">
+    <div class="campo cartao-usuario">
+      <div class="info">
+        <span class="rotulo">Motorista · Placa</span>
+        <span class="nome" id="nomeMotoristaChecklist">–</span>
       </div>
-
-      <div class="stats" id="statsVeiculos"></div>
-      <div class="chips" id="chipsVeiculos"></div>
-
-      <div class="estado-carregando" id="carregandoVeiculos" style="display:none">Carregando veículos…</div>
-      <div class="estado-erro" id="erroVeiculos" style="display:none">
-        <div id="erroVeiculosTexto">Não foi possível carregar os veículos.</div>
-        <button type="button" id="botaoTentarNovamente">Tentar novamente</button>
+      <div class="acoes">
+        <button type="button" class="botao-trocar" id="botaoTrocarPlaca">Trocar placa</button>
+        <button type="button" class="botao-sair" id="botaoSairChecklist">Sair</button>
       </div>
-      <div class="vazio" id="vazioVeiculos" style="display:none">Nenhum veículo encontrado.</div>
-      <div class="grade" id="gradeVeiculos"></div>
     </div>
 
-    <div id="viewFicha" style="display:none">
-      <button type="button" class="voltar" id="botaoVoltarDiretorio">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 5l-7 7 7 7" stroke="#5B6B62" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Diretório de veículos
+    <form id="formularioChecklist" novalidate>
+
+      <div class="titulo-secao">Perguntas da vistoria</div>
+      <p class="subtitulo-secao">Responda Sim ou Não para cada item. Se algum item indicar problema, uma foto dele será pedida.</p>
+      <div id="perguntasLista"></div>
+
+      <div class="campo">
+        <label>Fotos gerais do veículo <span class="obrig">*</span></label>
+        <div class="fotos-gerais-grid" id="fotosGeraisGrid"></div>
+      </div>
+
+      <div class="campo">
+        <label>Assinatura <span class="obrig">*</span></label>
+        <div class="assinatura-mensagem" id="mensagemAssinaturaTexto">–</div>
+        <div class="assinatura-canvas-wrap">
+          <canvas id="canvasAssinatura"></canvas>
+        </div>
+        <button type="button" class="botao-limpar-assinatura" id="botaoLimparAssinatura">Limpar assinatura</button>
+      </div>
+
+      <div class="erro-msg" id="erroChecklist"></div>
+
+      <button type="submit" class="enviar" id="botaoEnviarChecklist">
+        <span class="spinner"></span>
+        <span class="rotulo-normal">Enviar checklist</span>
       </button>
+    </form>
+  </div>
 
-      <div class="cabecalho-ficha" id="cabecalhoFicha"></div>
-      <div class="kpis" id="kpisFicha"></div>
+</div>
 
-      <div class="titulo-secao">
-        <span>Histórico de manutenção</span>
-        <div class="chips" id="chipsHistorico" style="margin-bottom:0"></div>
-      </div>
-      <div class="chips" id="chipsClassificacao" style="margin-bottom:14px"></div>
-
-      <div class="estado-carregando" id="carregandoFicha" style="display:none">Carregando histórico…</div>
-      <div class="estado-erro" id="erroFicha" style="display:none">
-        <div id="erroFichaTexto">Não foi possível carregar essa ficha.</div>
-      </div>
-      <div id="listaHistorico"></div>
+<div class="modal-overlay" id="modalSucesso">
+  <div class="modal-card">
+    <div class="icone">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
+    <h2>Checklist enviado</h2>
+    <p>A vistoria desse veículo foi registrada com sucesso.</p>
+    <button type="button" id="botaoFecharModal">OK</button>
+  </div>
+</div>
 
+<div class="modal-overlay" id="modalErro">
+  <div class="modal-card">
+    <div class="icone icone-erro">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.5v5.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="16.3" r="1.1" fill="currentColor"/></svg>
+    </div>
+    <h2 id="modalErroTitulo">Placa não Cadastrada no Sistema</h2>
+    <p id="modalErroTexto">Verifique a placa digitada ou fale com seu supervisor.</p>
+    <button type="button" class="botao-secundario" id="botaoFecharModalErro">OK</button>
   </div>
 </div>
 
@@ -256,92 +372,93 @@
   "use strict";
 
   // ============================================================
-  // Cole aqui a MESMA URL do Apps Script já usada no formulário
-  // (reporte-manutencao.html) e no painel (painel-manutencao.html) —
-  // é o mesmo backend, só com duas ações novas.
+  // Cole aqui a MESMA URL do Apps Script já usada no formulário de
+  // manutenção (reporte-manutencao.html) e nos outros sites — é o
+  // mesmo backend, só com ações novas.
   // ============================================================
   var SCRIPT_URL = "https://script.google.com/macros/s/AKfycby6NtZcj5s2dKyFTNgGRHT4zberx2M_NZ6cV4dmNQ6FbCBZYIecDbV2ED4jd-JfbrRQOQ/exec";
 
-  var CHAVE_SESSAO = "cva_veiculos_sessao_v1";
+  var LADO_MAX_PX = 1600;
+  var QUALIDADE_JPEG = 0.72;
+  var FECHAMENTO_AUTOMATICO_MS = 3500;
+  var CHAVE_SESSAO = "cva_sessao_checklist_v1";
 
-  var STATUS_INFO = {
-    em_manutencao: { rotulo: "Em manutenção", cor: "#8A661A", corNode: "#B0821F", corPonto: "#B0821F" },
-    operando: { rotulo: "Operando", cor: "#14532d", corNode: "#1F7A4D", corPonto: "#1F7A4D" },
-    fora_de_operacao: { rotulo: "Fora de operação", cor: "#5B6B62", corNode: "#5B6B62", corPonto: "#9FB0A5" }
-  };
+  var ITENS_FOTOS_GERAIS = [
+    "Frente", "Trás", "Lateral frente esquerda", "Lateral frente direita",
+    "Lateral traseira direita", "Lateral traseira esquerda", "Parabrisa",
+    "Interna (geral)", "Bancos", "Estepe", "Kit de segurança"
+  ];
 
-  var STATUS_HIST_INFO = {
-    em_andamento: { bg: "#FBF3E1", texto: "#8A661A", rotulo: "Em andamento", node: "#B0821F" },
-    concluido: { bg: "#E7F3EC", texto: "#14532d", rotulo: "Concluída", node: "#1F7A4D" },
-    cancelado: { bg: "#FBEAE7", texto: "#C24A3B", rotulo: "Cancelada", node: "#C24A3B" },
-    novo: { bg: "#E8F1FA", texto: "#2A6FB0", rotulo: "Aguardando triagem", node: "#2A6FB0" }
-  };
-
-  var CLASSIF_INFO = {
-    preventiva: { cor: "#1F7A4D", rotulo: "Preventiva" },
-    corretiva: { cor: "#B0821F", rotulo: "Corretiva" },
-    pneus: { cor: "#5B6B62", rotulo: "Pneus" },
-    funilaria: { cor: "#14532d", rotulo: "Funilaria" },
-    outros: { cor: "#8A661A", rotulo: "Outros" }
-  };
+  // ---------- elementos: telas ----------
+  var tituloTela = document.getElementById("tituloTela");
+  var subtituloTela = document.getElementById("subtituloTela");
+  var telaLogin = document.getElementById("telaLogin");
+  var telaPlaca = document.getElementById("telaPlaca");
+  var telaChecklist = document.getElementById("telaChecklist");
 
   // ---------- elementos: login ----------
-  var telaLogin = document.getElementById("telaLogin");
   var formularioLogin = document.getElementById("formularioLogin");
-  var campoUsuario = document.getElementById("usuarioVeiculos");
-  var campoSenha = document.getElementById("senhaVeiculos");
+  var campoUsuario = document.getElementById("usuario");
+  var campoSenha = document.getElementById("senha");
   var erroLogin = document.getElementById("erroLogin");
   var botaoLogin = document.getElementById("botaoLogin");
 
-  // ---------- elementos: app ----------
-  var app = document.getElementById("app");
-  var tituloTopo = document.getElementById("tituloTopo");
-  var botaoAtualizar = document.getElementById("botaoAtualizar");
-  var botaoSair = document.getElementById("botaoSair");
+  // ---------- elementos: tela placa ----------
+  var nomeMotoristaPlaca = document.getElementById("nomeMotoristaPlaca");
+  var botaoSairPlaca = document.getElementById("botaoSairPlaca");
+  var formularioPlaca = document.getElementById("formularioPlaca");
+  var campoPlacaChecklist = document.getElementById("placaChecklist");
+  var erroPlaca = document.getElementById("erroPlaca");
+  var botaoContinuarPlaca = document.getElementById("botaoContinuarPlaca");
 
-  var viewDiretorio = document.getElementById("viewDiretorio");
-  var viewFicha = document.getElementById("viewFicha");
+  // ---------- elementos: tela checklist ----------
+  var nomeMotoristaChecklist = document.getElementById("nomeMotoristaChecklist");
+  var botaoTrocarPlaca = document.getElementById("botaoTrocarPlaca");
+  var botaoSairChecklist = document.getElementById("botaoSairChecklist");
+  var formularioChecklist = document.getElementById("formularioChecklist");
+  var perguntasLista = document.getElementById("perguntasLista");
+  var fotosGeraisGrid = document.getElementById("fotosGeraisGrid");
+  var mensagemAssinaturaTexto = document.getElementById("mensagemAssinaturaTexto");
+  var canvasAssinatura = document.getElementById("canvasAssinatura");
+  var botaoLimparAssinatura = document.getElementById("botaoLimparAssinatura");
+  var erroChecklist = document.getElementById("erroChecklist");
+  var botaoEnviarChecklist = document.getElementById("botaoEnviarChecklist");
 
-  var campoBuscaVeiculo = document.getElementById("campoBuscaVeiculo");
-  var statsVeiculos = document.getElementById("statsVeiculos");
-  var chipsVeiculos = document.getElementById("chipsVeiculos");
-  var carregandoVeiculos = document.getElementById("carregandoVeiculos");
-  var erroVeiculos = document.getElementById("erroVeiculos");
-  var erroVeiculosTexto = document.getElementById("erroVeiculosTexto");
-  var botaoTentarNovamente = document.getElementById("botaoTentarNovamente");
-  var vazioVeiculos = document.getElementById("vazioVeiculos");
-  var gradeVeiculos = document.getElementById("gradeVeiculos");
+  var modalSucesso = document.getElementById("modalSucesso");
+  var botaoFecharModal = document.getElementById("botaoFecharModal");
+  var modalErro = document.getElementById("modalErro");
+  var modalErroTitulo = document.getElementById("modalErroTitulo");
+  var modalErroTexto = document.getElementById("modalErroTexto");
+  var botaoFecharModalErro = document.getElementById("botaoFecharModalErro");
 
-  var botaoVoltarDiretorio = document.getElementById("botaoVoltarDiretorio");
-  var cabecalhoFicha = document.getElementById("cabecalhoFicha");
-  var kpisFicha = document.getElementById("kpisFicha");
-  var chipsHistorico = document.getElementById("chipsHistorico");
-  var chipsClassificacao = document.getElementById("chipsClassificacao");
-  var carregandoFicha = document.getElementById("carregandoFicha");
-  var erroFicha = document.getElementById("erroFicha");
-  var erroFichaTexto = document.getElementById("erroFichaTexto");
-  var listaHistorico = document.getElementById("listaHistorico");
-
-  var veiculosAtuais = [];
-  var filtroVeiculo = "todos";
-  var buscaVeiculo = "";
-  var fichaAtual = null; // { veiculo, historico }
-  var filtroHistorico = "todas";
-  var filtroClassificacao = "todas";
+  var placaAtual = "";
+  var perguntasAtuais = [];
+  var respostasEstado = {}; // chave -> { resposta, problema, slotFoto }
+  var slotsFotosGerais = []; // [{ rotulo, slot }]
+  var mensagemAssinaturaAtual = "";
+  var timerFechamentoModal = null;
 
   // ============================================================
-  // JSONP — mesmo padrão usado no painel de gestão: evita CORS e
-  // permite ler a resposta (diferente do envio do formulário, que usa
-  // mode:"no-cors").
+  // JSONP genérico — mesmo padrão usado nos outros sites do projeto.
   // ============================================================
   function jsonp(urlBase, timeoutMs, aoReceber, aoFalhar){
-    var nomeCallback = "cvaVeiculosCallback_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
+    var nomeCallback = "cvaChecklistCallback_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
     var finalizado = false;
 
+    var tagScript = document.createElement("script");
+    tagScript.src = urlBase + (urlBase.indexOf("?") === -1 ? "?" : "&") + "callback=" + nomeCallback;
+
+    var timeoutId = setTimeout(function(){
+      if (finalizado) return;
+      finalizado = true;
+      limpar();
+      aoFalhar();
+    }, timeoutMs);
+
     function limpar(){
+      clearTimeout(timeoutId);
       delete window[nomeCallback];
-      if (script.parentNode) script.parentNode.removeChild(script);
-      clearTimeout(temporizador);
+      if (tagScript.parentNode) tagScript.parentNode.removeChild(tagScript);
     }
 
     window[nomeCallback] = function(dados){
@@ -351,515 +468,571 @@
       aoReceber(dados);
     };
 
-    var temporizador = setTimeout(function(){
-      if (finalizado) return;
-      finalizado = true;
-      limpar();
-      aoFalhar();
-    }, timeoutMs || 12000);
-
-    var script = document.createElement("script");
-    script.src = urlBase + (urlBase.indexOf("?") === -1 ? "?" : "&") + "callback=" + nomeCallback;
-    script.onerror = function(){
+    tagScript.onerror = function(){
       if (finalizado) return;
       finalizado = true;
       limpar();
       aoFalhar();
     };
-    document.body.appendChild(script);
+
+    document.head.appendChild(tagScript);
   }
 
+  // ============================================================
+  // Sessão do motorista (guardada só neste aparelho/navegador) —
+  // própria deste site, separada da sessão do formulário de manutenção.
+  // ============================================================
   function obterSessao(){
     try {
       var bruto = localStorage.getItem(CHAVE_SESSAO);
       if (!bruto) return null;
-      return JSON.parse(bruto);
-    } catch (erro) { return null; }
+      var sessao = JSON.parse(bruto);
+      return (sessao && sessao.nome) ? sessao : null;
+    } catch(e){ return null; }
   }
-  function salvarSessao(sessao){
-    try { localStorage.setItem(CHAVE_SESSAO, JSON.stringify(sessao)); } catch (erro) {}
+  function salvarSessao(nome){
+    try { localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ nome: nome, desde: Date.now() })); } catch(e){}
   }
-  function apagarSessao(){
-    try { localStorage.removeItem(CHAVE_SESSAO); } catch (erro) {}
+  function limparSessao(){
+    try { localStorage.removeItem(CHAVE_SESSAO); } catch(e){}
   }
 
-  function mostrarApp(){
+  function mostrarTelaLogin(){
+    telaLogin.style.display = "";
+    telaPlaca.style.display = "none";
+    telaChecklist.style.display = "none";
+    tituloTela.textContent = "Entrar";
+    subtituloTela.textContent = "Faça login para preencher o checklist semanal do veículo.";
+    campoSenha.value = "";
+  }
+  function mostrarTelaPlacaView(nome){
+    nomeMotoristaPlaca.textContent = nome;
     telaLogin.style.display = "none";
-    app.classList.add("mostrar");
-    mostrarDiretorio();
-    carregarVeiculos();
+    telaPlaca.style.display = "";
+    telaChecklist.style.display = "none";
+    tituloTela.textContent = "Checklist semanal";
+    subtituloTela.textContent = "Informe a placa do veículo que você vai vistoriar.";
+    campoPlacaChecklist.value = "";
+    esconderErroPlaca();
+    campoPlacaChecklist.focus();
   }
-  function mostrarLogin(){
-    app.classList.remove("mostrar");
-    telaLogin.style.display = "flex";
+  function mostrarTelaChecklistView(){
+    telaLogin.style.display = "none";
+    telaPlaca.style.display = "none";
+    telaChecklist.style.display = "";
+    tituloTela.textContent = "Checklist semanal";
+    subtituloTela.textContent = "Preencha a vistoria, anexe as fotos e assine ao final.";
+    var sessao = obterSessao();
+    nomeMotoristaChecklist.textContent = (sessao ? sessao.nome : "–") + " · " + placaAtual;
   }
 
-  function esconderErroLogin(){ erroLogin.classList.remove("mostrar"); erroLogin.textContent = ""; }
   function mostrarErroLogin(texto){ erroLogin.textContent = texto; erroLogin.classList.add("mostrar"); }
+  function esconderErroLogin(){ erroLogin.classList.remove("mostrar"); }
+  function mostrarErroPlaca(texto){ erroPlaca.textContent = texto; erroPlaca.classList.add("mostrar"); }
+  function esconderErroPlaca(){ erroPlaca.classList.remove("mostrar"); }
+  function mostrarErroChecklist(texto){ erroChecklist.textContent = texto; erroChecklist.classList.add("mostrar"); erroChecklist.scrollIntoView({ behavior:"smooth", block:"center" }); }
+  function esconderErroChecklist(){ erroChecklist.classList.remove("mostrar"); }
 
   formularioLogin.addEventListener("submit", function(ev){
     ev.preventDefault();
     esconderErroLogin();
+
     var usuario = campoUsuario.value.trim();
     var senha = campoSenha.value.trim();
-    if (!usuario || !senha){ mostrarErroLogin("Preencha usuário e senha."); return; }
+    if (!usuario || !senha){
+      mostrarErroLogin("Preencha usuário e senha.");
+      return;
+    }
+    if (SCRIPT_URL.indexOf("COLE_AQUI") !== -1){
+      mostrarErroLogin("O app ainda não foi configurado: falta colar a URL do Apps Script no arquivo HTML.");
+      return;
+    }
 
-    botaoLogin.classList.add("carregando");
     botaoLogin.disabled = true;
+    botaoLogin.classList.add("carregando");
 
-    var url = SCRIPT_URL + "?acao=listarVeiculos" +
-      "&usuario=" + encodeURIComponent(usuario) +
-      "&senha=" + encodeURIComponent(senha);
-
-    jsonp(url, 12000,
+    var url = SCRIPT_URL + "?acao=login&usuario=" + encodeURIComponent(usuario) + "&senha=" + encodeURIComponent(senha);
+    jsonp(url, 10000,
       function(dados){
-        botaoLogin.classList.remove("carregando");
         botaoLogin.disabled = false;
-        if (dados && dados.ok){
-          salvarSessao({ usuario: usuario, senha: senha, nome: dados.nome });
-          veiculosAtuais = dados.veiculos || [];
-          mostrarApp();
-          renderizarDiretorio();
+        botaoLogin.classList.remove("carregando");
+        if (dados && dados.ok && dados.nome){
+          salvarSessao(dados.nome);
+          mostrarTelaPlacaView(dados.nome);
         } else {
-          mostrarErroLogin((dados && dados.error) || "Não foi possível entrar.");
+          mostrarErroLogin((dados && dados.error) || "Usuário ou senha inválidos.");
         }
       },
       function(){
-        botaoLogin.classList.remove("carregando");
         botaoLogin.disabled = false;
-        mostrarErroLogin("Sem conexão agora. Tente novamente.");
+        botaoLogin.classList.remove("carregando");
+        mostrarErroLogin("Não foi possível verificar agora. Verifique sua internet e tente novamente.");
       }
     );
   });
 
-  botaoSair.addEventListener("click", function(){
-    apagarSessao();
-    mostrarLogin();
-  });
-
-  botaoAtualizar.addEventListener("click", function(){
-    if (viewFicha.style.display === "none"){
-      carregarVeiculos();
-    } else if (fichaAtual) {
-      carregarFicha(fichaAtual.veiculo.placa);
-    }
-  });
-
-  botaoTentarNovamente.addEventListener("click", carregarVeiculos);
-
-  // ============================================================
-  // Diretório
-  // ============================================================
-  function mostrarDiretorio(){
-    tituloTopo.textContent = "Diretório de veículos";
-    viewFicha.style.display = "none";
-    viewDiretorio.style.display = "block";
+  function sair(){
+    limparSessao();
+    campoUsuario.value = "";
+    mostrarTelaLogin();
   }
-
-  function carregarVeiculos(){
+  botaoSairPlaca.addEventListener("click", sair);
+  botaoSairChecklist.addEventListener("click", sair);
+  botaoTrocarPlaca.addEventListener("click", function(){
     var sessao = obterSessao();
-    if (!sessao){ mostrarLogin(); return; }
-
-    carregandoVeiculos.style.display = "block";
-    erroVeiculos.style.display = "none";
-    vazioVeiculos.style.display = "none";
-    gradeVeiculos.style.display = "none";
-
-    var url = SCRIPT_URL + "?acao=listarVeiculos" +
-      "&usuario=" + encodeURIComponent(sessao.usuario) +
-      "&senha=" + encodeURIComponent(sessao.senha);
-
-    jsonp(url, 12000,
-      function(dados){
-        carregandoVeiculos.style.display = "none";
-        if (dados && dados.ok){
-          veiculosAtuais = dados.veiculos || [];
-          renderizarDiretorio();
-        } else {
-          erroVeiculosTexto.textContent = (dados && dados.error) || "Não foi possível carregar os veículos.";
-          erroVeiculos.style.display = "block";
-        }
-      },
-      function(){
-        carregandoVeiculos.style.display = "none";
-        erroVeiculosTexto.textContent = "Sem conexão agora. Tente novamente.";
-        erroVeiculos.style.display = "block";
-      }
-    );
-  }
-
-  function calcularStats(lista){
-    return {
-      total: lista.length,
-      emManutencao: lista.filter(function(v){ return v.status === "em_manutencao"; }).length,
-      operando: lista.filter(function(v){ return v.status === "operando"; }).length,
-      foraDeOperacao: lista.filter(function(v){ return v.status === "fora_de_operacao"; }).length,
-      manutencoesNoAno: lista.reduce(function(soma, v){ return soma + (v.totalAno || 0); }, 0)
-    };
-  }
-
-  function renderizarStats(stats){
-    statsVeiculos.innerHTML = "";
-    var itens = [
-      { rotulo: "Total de veículos", valor: stats.total, classe: "" },
-      { rotulo: "Em manutenção agora", valor: stats.emManutencao, classe: "amarelo" },
-      { rotulo: "Operando", valor: stats.operando, classe: "verde" },
-      { rotulo: "Manutenções no ano", valor: stats.manutencoesNoAno, classe: "" }
-    ];
-    itens.forEach(function(it){
-      var el = document.createElement("div");
-      el.className = "stat" + (it.classe ? " " + it.classe : "");
-      el.innerHTML = '<div class="rotulo">' + it.rotulo + '</div><div class="valor">' + it.valor + '</div>';
-      statsVeiculos.appendChild(el);
-    });
-  }
-
-  function renderizarChipsVeiculos(stats){
-    chipsVeiculos.innerHTML = "";
-    var defs = [
-      { chave: "todos", rotulo: "Todos · " + stats.total },
-      { chave: "em_manutencao", rotulo: "Em manutenção · " + stats.emManutencao },
-      { chave: "operando", rotulo: "Operando · " + stats.operando },
-      { chave: "fora_de_operacao", rotulo: "Fora de operação · " + stats.foraDeOperacao }
-    ];
-    defs.forEach(function(def){
-      var chip = document.createElement("div");
-      chip.className = "chip" + (filtroVeiculo === def.chave ? " ativo" : "");
-      chip.textContent = def.rotulo;
-      chip.addEventListener("click", function(){
-        filtroVeiculo = def.chave;
-        renderizarDiretorio();
-      });
-      chipsVeiculos.appendChild(chip);
-    });
-  }
-
-  campoBuscaVeiculo.addEventListener("input", function(){
-    buscaVeiculo = campoBuscaVeiculo.value.trim().toLowerCase();
-    renderizarDiretorio();
+    mostrarTelaPlacaView(sessao ? sessao.nome : "–");
   });
 
-  function iconeFotoPlaceholder(){
-    return '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-      '<rect x="3" y="4" width="18" height="14" rx="2" stroke="#8FB89D" stroke-width="1.6"/>' +
-      '<circle cx="8.5" cy="9" r="1.6" stroke="#8FB89D" stroke-width="1.6"/>' +
-      '<path d="M4 16l5-4.5 3.5 3 3-2.5L20 15" stroke="#8FB89D" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  // ============================================================
+  // Placa
+  // ============================================================
+  campoPlacaChecklist.addEventListener("input", function(){
+    var posicao = campoPlacaChecklist.selectionStart;
+    campoPlacaChecklist.value = campoPlacaChecklist.value.toUpperCase();
+    try { campoPlacaChecklist.setSelectionRange(posicao, posicao); } catch(e){}
+  });
+
+  function formatoPlacaValido(placa){
+    var valor = placa.trim().toUpperCase();
+    var padraoAntigo = /^[A-Z]{3}-?\d{4}$/;
+    var padraoMercosul = /^[A-Z]{3}\d[A-Z]\d{2}$/;
+    return padraoAntigo.test(valor) || padraoMercosul.test(valor);
   }
 
-  function montarCartaoVeiculo(v){
-    var info = STATUS_INFO[v.status] || STATUS_INFO.operando;
-    var card = document.createElement("button");
-    card.type = "button";
-    card.className = "cartao-veiculo";
+  formularioPlaca.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    esconderErroPlaca();
 
-    var foto = document.createElement("div");
-    foto.className = "foto-veiculo";
-    if (v.fotoURL){
+    var sessao = obterSessao();
+    if (!sessao || !sessao.nome){ mostrarTelaLogin(); return; }
+
+    var placaDigitada = campoPlacaChecklist.value.trim().toUpperCase();
+    if (!formatoPlacaValido(placaDigitada)){
+      mostrarErroPlaca("Formato de placa inválido. Use AAA0000, AAA-0000 ou AAA0A00 (Mercosul).");
+      return;
+    }
+
+    botaoContinuarPlaca.disabled = true;
+    botaoContinuarPlaca.classList.add("carregando");
+
+    var url = SCRIPT_URL + "?acao=validarPlacaChecklist&placa=" + encodeURIComponent(placaDigitada);
+    jsonp(url, 12000,
+      function(dados){
+        botaoContinuarPlaca.disabled = false;
+        botaoContinuarPlaca.classList.remove("carregando");
+
+        if (!dados || !dados.ok){
+          mostrarErroPlaca((dados && dados.error) || "Placa não encontrada no cadastro.");
+          return;
+        }
+        if (dados.podeEnviar === false){
+          abrirModalErro(
+            "Checklist já enviado recentemente",
+            "Essa placa já teve um checklist enviado em " + (dados.ultimoEnvio || "-") + ".\nÉ possível enviar um novo checklist em " + dados.diasRestantes + " dia(s)."
+          );
+          return;
+        }
+
+        placaAtual = placaDigitada;
+        iniciarChecklist(dados.perguntas || [], dados.mensagemAssinatura || "");
+      },
+      function(){
+        botaoContinuarPlaca.disabled = false;
+        botaoContinuarPlaca.classList.remove("carregando");
+        mostrarErroPlaca("Não foi possível verificar agora. Verifique sua internet e tente novamente.");
+      }
+    );
+  });
+
+  // ============================================================
+  // Compressão de fotos — mesmo padrão do formulário de manutenção.
+  // ============================================================
+  function comprimirImagem(arquivo, callback){
+    var leitor = new FileReader();
+    leitor.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        var largura = img.width, altura = img.height;
+        if (largura > altura && largura > LADO_MAX_PX){
+          altura = Math.round(altura * (LADO_MAX_PX / largura));
+          largura = LADO_MAX_PX;
+        } else if (altura > LADO_MAX_PX){
+          largura = Math.round(largura * (LADO_MAX_PX / altura));
+          altura = LADO_MAX_PX;
+        }
+        var canvas = document.createElement("canvas");
+        canvas.width = largura;
+        canvas.height = altura;
+        canvas.getContext("2d").drawImage(img, 0, 0, largura, altura);
+        var dataUrl = canvas.toDataURL("image/jpeg", QUALIDADE_JPEG);
+        callback({
+          filename: (arquivo.name || "foto").replace(/\.[^.]+$/, "") + ".jpg",
+          mimeType: "image/jpeg",
+          base64: dataUrl.split(",")[1],
+          previewUrl: dataUrl
+        });
+      };
+      img.src = e.target.result;
+    };
+    leitor.readAsDataURL(arquivo);
+  }
+
+  // Slot de foto único (usado tanto pras fotos gerais quanto pra foto
+  // de um item que indicou problema).
+  function criarSlotFoto(rotuloTexto){
+    var estado = { foto: null };
+
+    var slot = document.createElement("div");
+    slot.className = "foto-slot";
+
+    var rotulo = document.createElement("div");
+    rotulo.className = "foto-slot-rotulo";
+    rotulo.textContent = rotuloTexto;
+    slot.appendChild(rotulo);
+
+    var area = document.createElement("div");
+    area.className = "foto-slot-area";
+    slot.appendChild(area);
+
+    var inputFile = document.createElement("input");
+    inputFile.type = "file";
+    inputFile.accept = "image/*";
+    inputFile.setAttribute("capture", "environment");
+    slot.appendChild(inputFile);
+
+    function renderizarVazio(){
+      area.innerHTML = "";
+      var botao = document.createElement("button");
+      botao.type = "button";
+      botao.className = "foto-slot-botao";
+      botao.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 8a2 2 0 0 1 2-2h1.2a1 1 0 0 0 .86-.49l.7-1.18A1 1 0 0 1 9.62 4h4.76a1 1 0 0 1 .86.33l.7 1.18A1 1 0 0 0 16.8 6H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="13" r="3.2" stroke="currentColor" stroke-width="1.6"/></svg> Foto';
+      botao.addEventListener("click", function(){ inputFile.click(); });
+      area.appendChild(botao);
+    }
+    function renderizarPreenchido(){
+      area.innerHTML = "";
       var img = document.createElement("img");
-      img.src = v.fotoURL;
-      img.alt = "Foto do veículo " + v.placa;
-      foto.appendChild(img);
-    } else {
-      foto.innerHTML = iconeFotoPlaceholder();
+      img.src = estado.foto.previewUrl;
+      img.alt = rotuloTexto;
+      area.appendChild(img);
+      var trocar = document.createElement("button");
+      trocar.type = "button";
+      trocar.className = "foto-slot-trocar";
+      trocar.textContent = "Trocar foto";
+      trocar.addEventListener("click", function(){ inputFile.click(); });
+      area.appendChild(trocar);
     }
-    var selo = document.createElement("span");
-    selo.className = "selo-status";
-    selo.style.color = info.cor;
-    selo.textContent = info.rotulo;
-    foto.appendChild(selo);
-    card.appendChild(foto);
 
-    var corpo = document.createElement("div");
-    corpo.className = "corpo-cartao";
-    corpo.innerHTML =
-      '<div><div class="rotulo-placa">Placa</div><div class="valor-placa">' + escaparHtml(v.placa) + '</div></div>' +
-      '<div style="display:flex;flex-direction:column;gap:6px">' +
-        '<div class="linha-info"><span class="rot">Veículo</span><span class="val">' + escaparHtml(v.veiculo || "—") + '</span></div>' +
-        '<div class="linha-info"><span class="rot">Tipo</span><span class="val">' + escaparHtml(v.tipoVeiculo || "—") + '</span></div>' +
-        '<div class="linha-info"><span class="rot">Motorista</span><span class="val">' + escaparHtml(v.motorista || "Sem motorista atribuído") + '</span></div>' +
-      '</div>' +
-      '<div class="linha-atualizacao"><span class="ponto" style="background:' + info.corPonto + '"></span>Última atualização: ' + escaparHtml(v.ultimaAtualizacao || "—") + '</div>' +
-      '<div class="ver-ficha">Ver ficha completa →</div>';
-    card.appendChild(corpo);
-
-    card.addEventListener("click", function(){ abrirFicha(v.placa); });
-    return card;
-  }
-
-  function escaparHtml(texto){
-    var div = document.createElement("div");
-    div.textContent = String(texto == null ? "" : texto);
-    return div.innerHTML;
-  }
-
-  function renderizarDiretorio(){
-    var stats = calcularStats(veiculosAtuais);
-    renderizarStats(stats);
-    renderizarChipsVeiculos(stats);
-
-    var lista = veiculosAtuais.filter(function(v){
-      if (filtroVeiculo !== "todos" && v.status !== filtroVeiculo) return false;
-      if (!buscaVeiculo) return true;
-      var alvo = [v.placa, v.veiculo, v.tipoVeiculo, v.motorista].join(" ").toLowerCase();
-      return alvo.indexOf(buscaVeiculo) !== -1;
+    inputFile.addEventListener("change", function(){
+      var arquivo = inputFile.files && inputFile.files[0];
+      inputFile.value = "";
+      if (!arquivo || !/^image\//.test(arquivo.type)) return;
+      comprimirImagem(arquivo, function(resultado){
+        estado.foto = resultado;
+        renderizarPreenchido();
+      });
     });
 
-    gradeVeiculos.innerHTML = "";
-    if (lista.length === 0){
-      gradeVeiculos.style.display = "none";
-      vazioVeiculos.style.display = "block";
-      return;
-    }
-    vazioVeiculos.style.display = "none";
-    gradeVeiculos.style.display = "grid";
-    lista.forEach(function(v){ gradeVeiculos.appendChild(montarCartaoVeiculo(v)); });
-  }
+    renderizarVazio();
 
-  // ============================================================
-  // Ficha do veículo
-  // ============================================================
-  function abrirFicha(placa){
-    tituloTopo.textContent = "Ficha do veículo";
-    viewDiretorio.style.display = "none";
-    viewFicha.style.display = "block";
-    filtroHistorico = "todas";
-    filtroClassificacao = "todas";
-    fichaAtual = null;
-    cabecalhoFicha.innerHTML = "";
-    kpisFicha.innerHTML = "";
-    chipsHistorico.innerHTML = "";
-    chipsClassificacao.innerHTML = "";
-    listaHistorico.innerHTML = "";
-    carregarFicha(placa);
-  }
-
-  botaoVoltarDiretorio.addEventListener("click", mostrarDiretorio);
-
-  function carregarFicha(placa){
-    var sessao = obterSessao();
-    if (!sessao){ mostrarLogin(); return; }
-
-    carregandoFicha.style.display = "block";
-    erroFicha.style.display = "none";
-
-    var url = SCRIPT_URL + "?acao=listarHistoricoPlaca" +
-      "&usuario=" + encodeURIComponent(sessao.usuario) +
-      "&senha=" + encodeURIComponent(sessao.senha) +
-      "&placa=" + encodeURIComponent(placa);
-
-    jsonp(url, 12000,
-      function(dados){
-        carregandoFicha.style.display = "none";
-        if (dados && dados.ok){
-          fichaAtual = { veiculo: dados.veiculo, historico: dados.historico || [] };
-          renderizarFicha();
-        } else {
-          erroFichaTexto.textContent = (dados && dados.error) || "Não foi possível carregar essa ficha.";
-          erroFicha.style.display = "block";
-        }
-      },
-      function(){
-        carregandoFicha.style.display = "none";
-        erroFichaTexto.textContent = "Sem conexão agora. Tente novamente.";
-        erroFicha.style.display = "block";
-      }
-    );
-  }
-
-  function renderizarCabecalhoFicha(v){
-    var info = STATUS_INFO[v.status] || STATUS_INFO.operando;
-    cabecalhoFicha.innerHTML =
-      '<div class="icone-veiculo">' + iconeFotoPlaceholder() + '</div>' +
-      '<div style="flex-grow:1">' +
-        '<div class="titulo-ficha"><h1>' + escaparHtml(v.placa) + '</h1>' +
-        '<span style="font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;background:var(--bg);color:' + info.cor + '">' + info.rotulo + '</span></div>' +
-        '<div class="sub-ficha">' + escaparHtml(v.veiculo || "Veículo não cadastrado") +
-          (v.tipoVeiculo ? " · " + escaparHtml(v.tipoVeiculo) : "") +
-          ' · Motorista atual: ' + escaparHtml(v.motorista || "—") +
-          (v.km ? " · " + escaparHtml(v.km) + " km" : "") +
-        '</div>' +
-      '</div>';
-  }
-
-  function renderizarKpisFicha(v){
-    var itens = [
-      { rotulo: "Total no ano", valor: v.totalAno, estilo: "" },
-      { rotulo: "Em andamento", valor: v.emAndamento, estilo: "amarelo" },
-      { rotulo: "Concluídas", valor: v.concluidas, estilo: "verde" },
-      { rotulo: "Canceladas", valor: v.canceladas, estilo: "" },
-      { rotulo: "Tempo médio de reparo", valor: (v.tempoMedioDias || v.tempoMedioDias === 0) ? (String(v.tempoMedioDias).replace(".", ",") + " dias") : "—", estilo: "" }
-    ];
-    kpisFicha.innerHTML = "";
-    itens.forEach(function(it){
-      var el = document.createElement("div");
-      el.className = "stat" + (it.estilo ? " " + it.estilo : "");
-      el.innerHTML = '<div class="rotulo">' + it.rotulo + '</div><div class="valor">' + it.valor + '</div>';
-      kpisFicha.appendChild(el);
-    });
-  }
-
-  function renderizarChipsHistorico(historico){
-    var contagens = {
-      todas: historico.length,
-      em_andamento: historico.filter(function(it){ return it.status === "em_andamento"; }).length,
-      concluido: historico.filter(function(it){ return it.status === "concluido"; }).length,
-      cancelado: historico.filter(function(it){ return it.status === "cancelado"; }).length
+    return {
+      elemento: slot,
+      temFoto: function(){ return !!estado.foto; },
+      obterFoto: function(){ return estado.foto; }
     };
-    var defs = [
-      { chave: "todas", rotulo: "Todas · " + contagens.todas },
-      { chave: "em_andamento", rotulo: "Em andamento · " + contagens.em_andamento },
-      { chave: "concluido", rotulo: "Concluídas · " + contagens.concluido },
-      { chave: "cancelado", rotulo: "Canceladas · " + contagens.cancelado }
-    ];
-    chipsHistorico.innerHTML = "";
-    defs.forEach(function(def){
-      var chip = document.createElement("div");
-      chip.className = "chip" + (filtroHistorico === def.chave ? " ativo" : "");
-      chip.textContent = def.rotulo;
-      chip.addEventListener("click", function(){
-        filtroHistorico = def.chave;
-        renderizarFicha();
+  }
+
+  // ============================================================
+  // Monta a tela do checklist a partir das perguntas recebidas do
+  // servidor (validarPlacaChecklist já devolve a lista atual).
+  // ============================================================
+  function iniciarChecklist(perguntas, mensagemAssinatura){
+    perguntasAtuais = perguntas;
+    mensagemAssinaturaAtual = mensagemAssinatura || "Declaro que as informações e fotos registradas neste checklist são verdadeiras.";
+    respostasEstado = {};
+
+    perguntasLista.innerHTML = "";
+    perguntas.forEach(function(p){
+      respostasEstado[p.chave] = { resposta: null, problema: false, slotFoto: null };
+
+      var card = document.createElement("div");
+      card.className = "campo pergunta-card";
+
+      var rotulo = document.createElement("label");
+      rotulo.textContent = p.pergunta;
+      card.appendChild(rotulo);
+
+      var toggle = document.createElement("div");
+      toggle.className = "resposta-toggle";
+      ["sim", "nao"].forEach(function(valor){
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "resposta-btn";
+        btn.dataset.valor = valor;
+        btn.textContent = valor === "sim" ? "Sim" : "Não";
+        btn.addEventListener("click", function(){ selecionarResposta(p, valor, card); });
+        toggle.appendChild(btn);
       });
-      chipsHistorico.appendChild(chip);
+      card.appendChild(toggle);
+
+      var fotoWrap = document.createElement("div");
+      fotoWrap.className = "pergunta-foto-wrap";
+      fotoWrap.style.display = "none";
+      card.appendChild(fotoWrap);
+
+      perguntasLista.appendChild(card);
+    });
+
+    slotsFotosGerais = ITENS_FOTOS_GERAIS.map(function(rotuloTexto){
+      var slot = criarSlotFoto(rotuloTexto);
+      return { rotulo: rotuloTexto, slot: slot };
+    });
+    fotosGeraisGrid.innerHTML = "";
+    slotsFotosGerais.forEach(function(item){ fotosGeraisGrid.appendChild(item.slot.elemento); });
+
+    mensagemAssinaturaTexto.textContent = mensagemAssinaturaAtual;
+
+    esconderErroChecklist();
+    mostrarTelaChecklistView();
+    requestAnimationFrame(prepararCanvas);
+  }
+
+  function selecionarResposta(p, valor, card){
+    respostasEstado[p.chave].resposta = valor;
+    var ehProblema = valor === p.respostaProblema;
+    respostasEstado[p.chave].problema = ehProblema;
+
+    var botoes = card.querySelectorAll(".resposta-btn");
+    botoes.forEach(function(btn){
+      var ehEsse = btn.dataset.valor === valor;
+      btn.classList.toggle("selecionado", ehEsse);
+      btn.classList.toggle("problema", ehEsse && ehProblema);
+    });
+
+    var fotoWrap = card.querySelector(".pergunta-foto-wrap");
+    if (ehProblema){
+      fotoWrap.style.display = "block";
+      if (!respostasEstado[p.chave].slotFoto){
+        var slot = criarSlotFoto("Foto do item: " + p.pergunta);
+        respostasEstado[p.chave].slotFoto = slot;
+        fotoWrap.innerHTML = "";
+        fotoWrap.appendChild(slot.elemento);
+      }
+    } else {
+      fotoWrap.style.display = "none";
+    }
+  }
+
+  // ============================================================
+  // Assinatura desenhada — canvas simples, sem biblioteca externa.
+  // ============================================================
+  var ctxAssinatura = canvasAssinatura.getContext("2d");
+  var assinaturaTemTraco = false;
+  var desenhandoAssinatura = false;
+  var ultimoPontoAssinatura = null;
+
+  function prepararCanvas(){
+    var proporcao = window.devicePixelRatio || 1;
+    var retangulo = canvasAssinatura.getBoundingClientRect();
+    if (!retangulo.width || !retangulo.height) return;
+    canvasAssinatura.width = retangulo.width * proporcao;
+    canvasAssinatura.height = retangulo.height * proporcao;
+    ctxAssinatura.setTransform(1, 0, 0, 1, 0, 0);
+    ctxAssinatura.scale(proporcao, proporcao);
+    ctxAssinatura.fillStyle = "#FFFFFF";
+    ctxAssinatura.fillRect(0, 0, retangulo.width, retangulo.height);
+    ctxAssinatura.strokeStyle = "#1B2420";
+    ctxAssinatura.lineWidth = 2.4;
+    ctxAssinatura.lineCap = "round";
+    ctxAssinatura.lineJoin = "round";
+    assinaturaTemTraco = false;
+  }
+
+  function posicaoRelativa(ev){
+    var retangulo = canvasAssinatura.getBoundingClientRect();
+    var origem = (ev.touches && ev.touches[0]) ? ev.touches[0] : ev;
+    return { x: origem.clientX - retangulo.left, y: origem.clientY - retangulo.top };
+  }
+  function iniciarTraco(ev){
+    ev.preventDefault();
+    desenhandoAssinatura = true;
+    ultimoPontoAssinatura = posicaoRelativa(ev);
+  }
+  function continuarTraco(ev){
+    if (!desenhandoAssinatura) return;
+    ev.preventDefault();
+    var ponto = posicaoRelativa(ev);
+    ctxAssinatura.beginPath();
+    ctxAssinatura.moveTo(ultimoPontoAssinatura.x, ultimoPontoAssinatura.y);
+    ctxAssinatura.lineTo(ponto.x, ponto.y);
+    ctxAssinatura.stroke();
+    ultimoPontoAssinatura = ponto;
+    assinaturaTemTraco = true;
+  }
+  function pararTraco(){
+    desenhandoAssinatura = false;
+    ultimoPontoAssinatura = null;
+  }
+
+  canvasAssinatura.addEventListener("mousedown", iniciarTraco);
+  canvasAssinatura.addEventListener("mousemove", continuarTraco);
+  window.addEventListener("mouseup", pararTraco);
+  canvasAssinatura.addEventListener("touchstart", iniciarTraco, { passive:false });
+  canvasAssinatura.addEventListener("touchmove", continuarTraco, { passive:false });
+  canvasAssinatura.addEventListener("touchend", pararTraco);
+  window.addEventListener("resize", function(){
+    if (telaChecklist.style.display !== "none") prepararCanvas();
+  });
+
+  botaoLimparAssinatura.addEventListener("click", function(){ prepararCanvas(); });
+
+  // ============================================================
+  // Popups
+  // ============================================================
+  function abrirModalSucesso(){
+    modalSucesso.classList.add("mostrar");
+    botaoFecharModal.focus();
+    if (timerFechamentoModal) clearTimeout(timerFechamentoModal);
+    timerFechamentoModal = setTimeout(fecharModalSucesso, FECHAMENTO_AUTOMATICO_MS);
+  }
+  function fecharModalSucesso(){
+    modalSucesso.classList.remove("mostrar");
+    if (timerFechamentoModal){ clearTimeout(timerFechamentoModal); timerFechamentoModal = null; }
+    var sessao = obterSessao();
+    mostrarTelaPlacaView(sessao ? sessao.nome : "–");
+  }
+  botaoFecharModal.addEventListener("click", fecharModalSucesso);
+  modalSucesso.addEventListener("click", function(ev){ if (ev.target === modalSucesso) fecharModalSucesso(); });
+
+  function abrirModalErro(titulo, texto){
+    modalErroTitulo.textContent = titulo;
+    modalErroTexto.textContent = texto;
+    modalErro.classList.add("mostrar");
+    botaoFecharModalErro.focus();
+  }
+  function fecharModalErro(){ modalErro.classList.remove("mostrar"); }
+  botaoFecharModalErro.addEventListener("click", fecharModalErro);
+  modalErro.addEventListener("click", function(ev){ if (ev.target === modalErro) fecharModalErro(); });
+
+  // ============================================================
+  // Envio do checklist
+  // ============================================================
+  function enviarChecklist(){
+    var sessao = obterSessao();
+
+    var respostasPayload = perguntasAtuais.map(function(p){
+      var estado = respostasEstado[p.chave];
+      return {
+        chave: p.chave,
+        pergunta: p.pergunta,
+        resposta: estado.resposta,
+        problema: estado.problema
+      };
+    });
+
+    var fotosPayload = [];
+    slotsFotosGerais.forEach(function(item){
+      var foto = item.slot.obterFoto();
+      fotosPayload.push({
+        rotulo: item.rotulo,
+        tipo: "geral",
+        chave: "",
+        filename: foto.filename,
+        mimeType: foto.mimeType,
+        base64: foto.base64
+      });
+    });
+    perguntasAtuais.forEach(function(p){
+      var estado = respostasEstado[p.chave];
+      if (estado.problema && estado.slotFoto && estado.slotFoto.temFoto()){
+        var foto = estado.slotFoto.obterFoto();
+        fotosPayload.push({
+          rotulo: p.pergunta,
+          tipo: "problema",
+          chave: p.chave,
+          filename: foto.filename,
+          mimeType: foto.mimeType,
+          base64: foto.base64
+        });
+      }
+    });
+
+    var payload = {
+      formulario: "checklist",
+      motorista: sessao ? sessao.nome : "",
+      placa: placaAtual,
+      respostas: respostasPayload,
+      fotos: fotosPayload,
+      assinatura: { base64: canvasAssinatura.toDataURL("image/png").split(",")[1], mimeType: "image/png" },
+      mensagemAssinatura: mensagemAssinaturaAtual
+    };
+
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    })
+    .then(function(){
+      abrirModalSucesso();
+    })
+    .catch(function(){
+      mostrarErroChecklist("Não foi possível enviar agora. Verifique sua conexão com a internet e tente novamente.");
+    })
+    .finally(function(){
+      botaoEnviarChecklist.disabled = false;
+      botaoEnviarChecklist.classList.remove("carregando");
     });
   }
 
-  function renderizarChipsClassificacao(historico){
-    var ordem = ["preventiva", "corretiva", "pneus", "funilaria", "outros"];
-    var contagens = { todas: historico.length };
-    ordem.forEach(function(chave){
-      contagens[chave] = historico.filter(function(it){ return it.classificacao === chave; }).length;
-    });
-    var defs = [{ chave: "todas", rotulo: "Todos os tipos · " + contagens.todas }];
-    ordem.forEach(function(chave){
-      var info = CLASSIF_INFO[chave];
-      defs.push({ chave: chave, rotulo: info.rotulo + " · " + contagens[chave] });
-    });
-    chipsClassificacao.innerHTML = "";
-    defs.forEach(function(def){
-      var chip = document.createElement("div");
-      chip.className = "chip" + (filtroClassificacao === def.chave ? " ativo" : "");
-      chip.textContent = def.rotulo;
-      chip.addEventListener("click", function(){
-        filtroClassificacao = def.chave;
-        renderizarFicha();
-      });
-      chipsClassificacao.appendChild(chip);
-    });
-  }
+  formularioChecklist.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    esconderErroChecklist();
 
-  function renderizarListaHistorico(historico){
-    var filtrados = historico.filter(function(it){
-      var passaStatus = filtroHistorico === "todas" || it.status === filtroHistorico;
-      var passaClassificacao = filtroClassificacao === "todas" || it.classificacao === filtroClassificacao;
-      return passaStatus && passaClassificacao;
-    });
-    listaHistorico.innerHTML = "";
+    var sessao = obterSessao();
+    if (!sessao || !sessao.nome){ mostrarTelaLogin(); return; }
+    if (!placaAtual){ mostrarTelaPlacaView(sessao.nome); return; }
 
-    if (filtrados.length === 0){
-      var vazio = document.createElement("div");
-      vazio.className = "vazio";
-      vazio.textContent = "Nenhuma manutenção nesse filtro.";
-      listaHistorico.appendChild(vazio);
+    var perguntaSemResposta = perguntasAtuais.find(function(p){ return !respostasEstado[p.chave].resposta; });
+    if (perguntaSemResposta){
+      mostrarErroChecklist("Responda todas as perguntas do checklist (faltou: \"" + perguntaSemResposta.pergunta + "\").");
       return;
     }
 
-    filtrados.forEach(function(item, indice){
-      var statusInfo = STATUS_HIST_INFO[item.status] || STATUS_HIST_INFO.novo;
-      var classif = item.classificacao ? CLASSIF_INFO[item.classificacao] : null;
-
-      var linha = document.createElement("div");
-      linha.className = "linha-tempo-item";
-
-      var partesData = String(item.dataHoraEnvio || "").split(" ");
-      var dataCurta = (partesData[0] || "").slice(0, 5);
-      var ano = (partesData[0] || "").slice(6, 10);
-
-      var colData = document.createElement("div");
-      colData.style.cssText = "width:78px;flex-shrink:0;text-align:right;padding-top:3px;";
-      colData.innerHTML = '<div style="font-size:13.5px;font-weight:700">' + escaparHtml(dataCurta) + '</div><div style="font-size:11px;color:var(--texto-suave)">' + escaparHtml(ano) + '</div>';
-      linha.appendChild(colData);
-
-      var colNo = document.createElement("div");
-      colNo.style.cssText = "width:12px;flex-shrink:0;position:relative;";
-      var no = document.createElement("div");
-      no.className = "no-tempo";
-      no.style.background = statusInfo.node;
-      colNo.appendChild(no);
-      if (indice < filtrados.length - 1){
-        var conector = document.createElement("div");
-        conector.className = "conector";
-        colNo.appendChild(conector);
-      }
-      linha.appendChild(colNo);
-
-      var cartao = document.createElement("div");
-      cartao.className = "cartao-historico";
-
-      var topoLinha = document.createElement("div");
-      topoLinha.style.cssText = "display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;";
-      var tagsEsquerda = document.createElement("div");
-      tagsEsquerda.style.cssText = "display:flex;align-items:center;gap:10px;flex-wrap:wrap;";
-      if (classif){
-        tagsEsquerda.innerHTML += '<span style="display:inline-flex;align-items:center;font-size:12.5px;font-weight:700"><span class="classificacao-dot" style="background:' + classif.cor + '"></span>' + classif.rotulo + '</span>';
-      } else if (item.tipo){
-        tagsEsquerda.innerHTML += '<span style="font-size:12px;font-weight:700;color:var(--texto-suave);border:1px solid var(--borda);border-radius:20px;padding:3px 10px;">Tipo informado: ' + escaparHtml(item.tipo) + '</span>';
-      }
-      topoLinha.appendChild(tagsEsquerda);
-      var badgeStatus = document.createElement("span");
-      badgeStatus.style.cssText = "font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:20px;white-space:nowrap;background:" + statusInfo.bg + ";color:" + statusInfo.texto + ";";
-      badgeStatus.textContent = statusInfo.rotulo;
-      topoLinha.appendChild(badgeStatus);
-      cartao.appendChild(topoLinha);
-
-      var titulo = document.createElement("div");
-      titulo.style.cssText = "margin-top:10px;font-size:15px;font-weight:700;";
-      titulo.textContent = item.descricao || "(sem descrição)";
-      cartao.appendChild(titulo);
-
-      if (item.classificacao === "outros" && item.motivoOutro){
-        var motivoOutro = document.createElement("div");
-        motivoOutro.style.cssText = "margin-top:6px;font-size:12.5px;color:var(--texto-suave);";
-        motivoOutro.textContent = "Motivo: " + item.motivoOutro;
-        cartao.appendChild(motivoOutro);
-      }
-
-      if (item.prestador){
-        var linhaPrestador = document.createElement("div");
-        linhaPrestador.style.cssText = "margin-top:8px;font-size:13px;color:var(--texto-suave);";
-        linhaPrestador.innerHTML = "Prestador: <b style=\"color:var(--texto)\">" + escaparHtml(item.prestador) + "</b>" +
-          (item.prazoDataLimite ? " · prazo: " + escaparHtml(item.prazoDataLimite) : "");
-        cartao.appendChild(linhaPrestador);
-      }
-
-      if (item.status === "cancelado" && item.motivoRejeicao){
-        var motivoCancel = document.createElement("div");
-        motivoCancel.style.cssText = "margin-top:10px;background:var(--erro-claro);border-radius:10px;padding:10px 14px;font-size:13px;color:#8a352a;";
-        motivoCancel.textContent = "Motivo do cancelamento: " + item.motivoRejeicao;
-        cartao.appendChild(motivoCancel);
-      }
-
-      linha.appendChild(cartao);
-      listaHistorico.appendChild(linha);
+    var problemaSemFoto = perguntasAtuais.find(function(p){
+      var estado = respostasEstado[p.chave];
+      return estado.problema && (!estado.slotFoto || !estado.slotFoto.temFoto());
     });
-  }
+    if (problemaSemFoto){
+      mostrarErroChecklist("Adicione a foto do item que indicou problema: \"" + problemaSemFoto.pergunta + "\".");
+      return;
+    }
 
-  function renderizarFicha(){
-    if (!fichaAtual) return;
-    renderizarCabecalhoFicha(fichaAtual.veiculo);
-    renderizarKpisFicha(fichaAtual.veiculo);
-    renderizarChipsHistorico(fichaAtual.historico);
-    renderizarChipsClassificacao(fichaAtual.historico);
-    renderizarListaHistorico(fichaAtual.historico);
-  }
+    var fotoGeralFaltando = slotsFotosGerais.find(function(item){ return !item.slot.temFoto(); });
+    if (fotoGeralFaltando){
+      mostrarErroChecklist("Adicione a foto geral: \"" + fotoGeralFaltando.rotulo + "\".");
+      return;
+    }
+
+    if (!assinaturaTemTraco){
+      mostrarErroChecklist("Assine no campo indicado antes de enviar o checklist.");
+      return;
+    }
+
+    botaoEnviarChecklist.disabled = true;
+    botaoEnviarChecklist.classList.add("carregando");
+    enviarChecklist();
+  });
 
   // ============================================================
-  // Início: se já tem sessão salva neste aparelho, entra direto.
+  // Início: se já existe sessão salva neste aparelho, pula direto
+  // para a tela de escolher a placa.
   // ============================================================
-  if (obterSessao()){
-    mostrarApp();
+  var sessaoInicial = obterSessao();
+  if (sessaoInicial){
+    mostrarTelaPlacaView(sessaoInicial.nome);
   } else {
-    mostrarLogin();
+    mostrarTelaLogin();
   }
 
 })();
