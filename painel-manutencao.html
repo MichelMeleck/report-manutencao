@@ -626,14 +626,6 @@
         <button type="button" class="botao-mover botao-rejeitar" id="botaoRejeitar">✕ Rejeitar</button>
       </div>
 
-      <div id="triagemRejeicaoWrap" style="display:none">
-        <div class="campo-simples">
-          <label for="triagemMotivoRejeicao">Motivo do cancelamento (opcional)</label>
-          <input type="text" id="triagemMotivoRejeicao" placeholder="Ex: duplicado, engano, etc.">
-        </div>
-        <button type="button" class="botao-mover botao-rejeitar" id="botaoConfirmarRejeicao" style="margin-top:8px;width:100%">Confirmar rejeição</button>
-      </div>
-
       <div class="mover-botoes" id="triagemBotoesClassificacao" style="display:none"></div>
 
       <div id="triagemMotivoWrap" style="display:none">
@@ -665,10 +657,10 @@
 </div>
 
 <!-- ============ MODAL: motivo do cancelamento ============
-     Aparece sempre que uma solicitação (já aceita) é movida pra
-     "Cancelado", seja arrastando o card ou pelo botão "Mover para" —
-     o motivo é obrigatório. (O rejeitar de uma solicitação nova tem
-     seu próprio campo, dentro do modal de detalhes.) -->
+     Popup único usado em QUALQUER cancelamento: tanto ao "Rejeitar"
+     uma solicitação nova quanto ao mover uma já aceita pra
+     "Cancelado" (arrastando o card ou pelo botão "Mover para"). O
+     motivo é sempre obrigatório pra confirmar. -->
 <div class="modal-overlay" id="modalMotivoCancelamento">
   <div class="modal-card">
     <div class="modal-topo">
@@ -761,9 +753,6 @@
   var botaoAceitar = document.getElementById("botaoAceitar");
   var botaoRejeitar = document.getElementById("botaoRejeitar");
   var triagemBotoesClassificacao = document.getElementById("triagemBotoesClassificacao");
-  var triagemRejeicaoWrap = document.getElementById("triagemRejeicaoWrap");
-  var triagemMotivoRejeicao = document.getElementById("triagemMotivoRejeicao");
-  var botaoConfirmarRejeicao = document.getElementById("botaoConfirmarRejeicao");
   var triagemMotivoWrap = document.getElementById("triagemMotivoWrap");
   var triagemMotivo = document.getElementById("triagemMotivo");
   var botaoContinuarMotivo = document.getElementById("botaoContinuarMotivo");
@@ -772,7 +761,7 @@
   var triagemPrestador = document.getElementById("triagemPrestador");
   var botaoConfirmarPrazo = document.getElementById("botaoConfirmarPrazo");
 
-  // ---------- elementos: motivo do cancelamento (cards já aceitos) ----------
+  // ---------- elementos: motivo do cancelamento (rejeitar ou cancelar) ----------
   var modalMotivoCancelamento = document.getElementById("modalMotivoCancelamento");
   var fecharModalMotivoCancelamentoBtn = document.getElementById("fecharModalMotivoCancelamento");
   var motivoCancelamentoInput = document.getElementById("motivoCancelamentoInput");
@@ -1056,6 +1045,7 @@
         });
         listaCards.addEventListener("drop", function(ev){
           ev.preventDefault();
+          ev.stopPropagation();
           listaCards.classList.remove("coluna-cards-alvo");
           var id = ev.dataTransfer.getData("text/plain");
           if (!id) return;
@@ -1263,12 +1253,10 @@
   function reiniciarTriagem(){
     triagemEstado = { classificacao: null, motivoOutro: "" };
     triagemBotoesInicial.style.display = "flex";
-    triagemRejeicaoWrap.style.display = "none";
     triagemBotoesClassificacao.style.display = "none";
     triagemMotivoWrap.style.display = "none";
     triagemPrazoWrap.style.display = "none";
     triagemMotivo.value = "";
-    triagemMotivoRejeicao.value = "";
     triagemPrazoDias.value = "";
     triagemPrestador.value = "";
 
@@ -1298,16 +1286,11 @@
     triagemBotoesClassificacao.style.display = "flex";
   });
 
+  // "Rejeitar" abre o mesmo popup de motivo usado pra qualquer
+  // cancelamento (ver pedirMotivoCancelamento, mais abaixo).
   botaoRejeitar.addEventListener("click", function(){
-    triagemBotoesInicial.style.display = "none";
-    triagemRejeicaoWrap.style.display = "block";
-    triagemMotivoRejeicao.focus();
-  });
-
-  botaoConfirmarRejeicao.addEventListener("click", function(){
     var id = modalDetalhe.dataset.idAtual;
-    var motivo = triagemMotivoRejeicao.value.trim();
-    confirmarRejeicao(id, motivo);
+    pedirMotivoCancelamento(id);
   });
 
   function confirmarRejeicao(id, motivo){
@@ -1508,18 +1491,31 @@
   }
 
   // ============================================================
-  // Cancelamento de uma solicitação já aceita: exige informar o
-  // motivo antes de mover o card pra "Cancelado" — seja arrastando
-  // ou pelo botão "Mover para" dentro do modal de detalhes.
+  // Popup único de "motivo do cancelamento" — usado em QUALQUER
+  // cancelamento: Rejeitar uma solicitação nova, ou mover uma já
+  // aceita pra "Cancelado" (arrastando o card ou pelo botão "Mover
+  // para"). O motivo é sempre obrigatório.
+  //
+  // "abertoEm" guarda o instante em que o popup foi mostrado: o
+  // clique/soltar que abre o popup (principalmente ao arrastar um
+  // card) pode gerar, logo em seguida, um clique "fantasma" bem em
+  // cima do fundo do popup — sem essa proteção, esse clique fecha o
+  // popup imediatamente, antes da pessoa ver o campo pra digitar.
   // ============================================================
   var idCancelamentoPendente = null;
+  var motivoCancelamentoAbertoEm = 0;
 
   function pedirMotivoCancelamento(id){
     idCancelamentoPendente = id;
     motivoCancelamentoInput.value = "";
     motivoCancelamentoAviso.classList.remove("mostrar");
-    modalMotivoCancelamento.classList.add("mostrar");
-    setTimeout(function(){ motivoCancelamentoInput.focus(); }, 50);
+    // Abre no próximo "tick": evita que o mesmo gesto que soltou o
+    // card (drop) feche o popup na hora, antes de ele aparecer.
+    setTimeout(function(){
+      modalMotivoCancelamento.classList.add("mostrar");
+      motivoCancelamentoAbertoEm = Date.now();
+      motivoCancelamentoInput.focus();
+    }, 60);
   }
 
   function fecharModalMotivoCancelamento(){
@@ -1529,7 +1525,11 @@
 
   fecharModalMotivoCancelamentoBtn.addEventListener("click", fecharModalMotivoCancelamento);
   modalMotivoCancelamento.addEventListener("click", function(ev){
-    if (ev.target === modalMotivoCancelamento) fecharModalMotivoCancelamento();
+    if (ev.target !== modalMotivoCancelamento) return;
+    // Ignora cliques nos primeiros instantes depois de abrir (ver
+    // comentário acima sobre o clique fantasma do arrastar-e-soltar).
+    if (Date.now() - motivoCancelamentoAbertoEm < 400) return;
+    fecharModalMotivoCancelamento();
   });
 
   botaoConfirmarMotivoCancelamento.addEventListener("click", function(){
@@ -1540,9 +1540,14 @@
       return;
     }
     var id = idCancelamentoPendente;
+    var item = solicitacoesAtuais.filter(function(s){ return s.id === id; })[0];
     fecharModalMotivoCancelamento();
     fecharModal();
-    moverComOtimismo(id, "cancelado", { motivo: motivo });
+    if (item && item.status === "novo"){
+      confirmarRejeicao(id, motivo);
+    } else {
+      moverComOtimismo(id, "cancelado", { motivo: motivo });
+    }
   });
 
   // ============================================================
