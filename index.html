@@ -112,6 +112,7 @@
 
   input[type=text],
   input[type=number],
+  input[type=password],
   select,
   textarea{
     width:100%;
@@ -154,6 +155,41 @@
   .outro-wrap{ margin-top:10px; display:none; }
   .outro-wrap.mostrar{ display:block; }
   .outro-wrap input{ border-top:1px solid var(--borda); padding-top:10px; }
+
+  /* Cartão do motorista logado */
+  .cartao-usuario{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .cartao-usuario .info{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .cartao-usuario .rotulo{
+    font-size:12px;
+    font-weight:600;
+    color:var(--texto-suave);
+    text-transform:uppercase;
+    letter-spacing:.02em;
+  }
+  .cartao-usuario .nome{
+    font-size:16.5px;
+    font-weight:700;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .botao-sair{
+    flex:none;
+    background:none;
+    border:1px solid var(--borda);
+    color:var(--texto-suave);
+    font-size:13px;
+    font-weight:700;
+    padding:8px 14px;
+    border-radius:10px;
+    cursor:pointer;
+  }
+  .botao-sair:active{ background:var(--verde-claro); }
 
   /* Fotos */
   .fotos-grid{
@@ -240,6 +276,13 @@
   }
   .erro-msg.mostrar{ display:block; }
 
+  .ajuda-login{
+    font-size:12.5px;
+    color:var(--texto-suave);
+    line-height:1.5;
+    margin:2px 4px 0;
+  }
+
   /* Popup de sucesso */
   .modal-overlay{
     display:none;
@@ -308,89 +351,115 @@
       </span>
       <span class="nome">Cheiro Verde Ambiental</span>
     </div>
-    <h1>Reporte de Manutenção de Veículo</h1>
-    <p class="sub">Preencha os dados abaixo e anexe fotos do problema. A solicitação é enviada direto para a equipe de manutenção.</p>
+    <h1 id="tituloTela">Entrar</h1>
+    <p class="sub" id="subtituloTela">Faça login para registrar uma manutenção de veículo.</p>
   </header>
 
-  <form id="formulario" novalidate>
-
-    <div class="campo">
-      <label for="motorista">Motorista <span class="obrig">*</span></label>
-      <div class="select-wrap">
-        <select id="motorista" name="motorista" required disabled>
-          <option value="" disabled selected>Carregando lista...</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="duas-colunas">
+  <!-- ===================== TELA DE LOGIN ===================== -->
+  <div id="telaLogin">
+    <form id="formularioLogin" novalidate>
       <div class="campo">
-        <label for="placa">Placa <span class="obrig">*</span></label>
-        <div class="select-wrap">
-          <select id="placa" name="placa" required disabled>
-            <option value="" disabled selected>Carregando lista...</option>
-          </select>
-        </div>
+        <label for="usuario">Usuário <span class="obrig">*</span></label>
+        <input type="text" id="usuario" name="usuario" autocomplete="username" autocapitalize="words" required>
       </div>
       <div class="campo">
-        <label>Data</label>
-        <div class="campo-estatico" id="dataExibicao">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="5" width="17" height="16" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 3v4M16 3v4M3.5 10h17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          <span id="dataTexto">–</span>
-        </div>
+        <label for="senha">Senha <span class="obrig">*</span></label>
+        <input type="password" id="senha" name="senha" inputmode="numeric" autocomplete="current-password" placeholder="Seu CPF" required>
       </div>
-    </div>
+      <p class="ajuda-login">Usuário é o seu primeiro nome. Senha é o seu CPF (com ou sem pontos e traço).</p>
 
-    <div class="duas-colunas">
-      <div class="campo">
-        <label for="km">Quilometragem <span class="obrig">*</span></label>
-        <input type="number" id="km" name="km" placeholder="Ex: 125430" inputmode="numeric" min="0" required>
-      </div>
-      <div class="campo">
-        <label for="tipo">Tipo de manutenção <span class="obrig">*</span></label>
-        <div class="select-wrap">
-          <select id="tipo" name="tipo" required>
-            <option value="" disabled selected>Selecione</option>
-            <option>Mecânica</option>
-            <option>Elétrica</option>
-            <option>Pneus</option>
-            <option>Freios</option>
-            <option>Suspensão</option>
-            <option>Fluidos / Óleo</option>
-            <option>Ar-condicionado</option>
-            <option>Lataria / Carroceria</option>
-            <option>Outro</option>
-          </select>
-        </div>
-        <div class="outro-wrap" id="outroWrap">
-          <input type="text" id="tipoOutro" placeholder="Especifique o tipo">
-        </div>
-      </div>
-    </div>
+      <div class="erro-msg" id="erroLogin"></div>
 
-    <div class="campo">
-      <label for="descricao">Descrição do problema <span class="obrig">*</span></label>
-      <textarea id="descricao" name="descricao" placeholder="Descreva o que está acontecendo com o veículo" required></textarea>
-    </div>
-
-    <div class="campo">
-      <label>Fotos <span class="obrig">*</span></label>
-      <div class="fotos-grid" id="fotosGrid"></div>
-      <button type="button" class="botao-foto" id="botaoFoto">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 8a2 2 0 0 1 2-2h1.2a1 1 0 0 0 .86-.49l.7-1.18A1 1 0 0 1 9.62 4h4.76a1 1 0 0 1 .86.33l.7 1.18A1 1 0 0 0 16.8 6H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="13" r="3.2" stroke="currentColor" stroke-width="1.6"/></svg>
-        Adicionar foto
+      <button type="submit" class="enviar" id="botaoLogin">
+        <span class="spinner"></span>
+        <span class="rotulo-normal">Entrar</span>
       </button>
-      <input type="file" id="inputFoto" accept="image/*" capture="environment" multiple>
-      <p class="fotos-legenda">Até 5 fotos. Toque em "Adicionar foto" para tirar uma foto ou escolher da galeria.</p>
+    </form>
+  </div>
+
+  <!-- ===================== TELA DO FORMULÁRIO ===================== -->
+  <div id="telaFormulario" style="display:none">
+
+    <div class="campo cartao-usuario">
+      <div class="info">
+        <span class="rotulo">Motorista</span>
+        <span class="nome" id="nomeMotoristaLogado">–</span>
+      </div>
+      <button type="button" class="botao-sair" id="botaoSair">Sair</button>
     </div>
 
-    <div class="erro-msg" id="erroMsg"></div>
+    <form id="formulario" novalidate>
 
-    <button type="submit" class="enviar" id="botaoEnviar">
-      <span class="spinner"></span>
-      <span class="rotulo-normal">Enviar solicitação</span>
-    </button>
-  </form>
+      <div class="duas-colunas">
+        <div class="campo">
+          <label for="placa">Placa <span class="obrig">*</span></label>
+          <div class="select-wrap">
+            <select id="placa" name="placa" required disabled>
+              <option value="" disabled selected>Carregando lista...</option>
+            </select>
+          </div>
+        </div>
+        <div class="campo">
+          <label>Data</label>
+          <div class="campo-estatico" id="dataExibicao">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="5" width="17" height="16" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 3v4M16 3v4M3.5 10h17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <span id="dataTexto">–</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="duas-colunas">
+        <div class="campo">
+          <label for="km">Quilometragem <span class="obrig">*</span></label>
+          <input type="number" id="km" name="km" placeholder="Ex: 125430" inputmode="numeric" min="0" required>
+        </div>
+        <div class="campo">
+          <label for="tipo">Tipo de manutenção <span class="obrig">*</span></label>
+          <div class="select-wrap">
+            <select id="tipo" name="tipo" required>
+              <option value="" disabled selected>Selecione</option>
+              <option>Mecânica</option>
+              <option>Elétrica</option>
+              <option>Pneus</option>
+              <option>Freios</option>
+              <option>Suspensão</option>
+              <option>Fluidos / Óleo</option>
+              <option>Ar-condicionado</option>
+              <option>Lataria / Carroceria</option>
+              <option>Outro</option>
+            </select>
+          </div>
+          <div class="outro-wrap" id="outroWrap">
+            <input type="text" id="tipoOutro" placeholder="Especifique o tipo">
+          </div>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label for="descricao">Descrição do problema <span class="obrig">*</span></label>
+        <textarea id="descricao" name="descricao" placeholder="Descreva o que está acontecendo com o veículo" required></textarea>
+      </div>
+
+      <div class="campo">
+        <label>Fotos <span class="obrig">*</span></label>
+        <div class="fotos-grid" id="fotosGrid"></div>
+        <button type="button" class="botao-foto" id="botaoFoto">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 8a2 2 0 0 1 2-2h1.2a1 1 0 0 0 .86-.49l.7-1.18A1 1 0 0 1 9.62 4h4.76a1 1 0 0 1 .86.33l.7 1.18A1 1 0 0 0 16.8 6H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="13" r="3.2" stroke="currentColor" stroke-width="1.6"/></svg>
+          Adicionar foto
+        </button>
+        <input type="file" id="inputFoto" accept="image/*" capture="environment" multiple>
+        <p class="fotos-legenda">Até 5 fotos. Toque em "Adicionar foto" para tirar uma foto ou escolher da galeria.</p>
+      </div>
+
+      <div class="erro-msg" id="erroMsg"></div>
+
+      <button type="submit" class="enviar" id="botaoEnviar">
+        <span class="spinner"></span>
+        <span class="rotulo-normal">Enviar solicitação</span>
+      </button>
+    </form>
+
+  </div>
 
 </div>
 
@@ -420,13 +489,30 @@
   var LADO_MAX_PX = 1600;
   var QUALIDADE_JPEG = 0.72;
   var FECHAMENTO_AUTOMATICO_MS = 3500;
+  var CHAVE_SESSAO = "cva_sessao_motorista_v1";
+  var CHAVE_CACHE_PLACAS = "cva_placas_cache_v1";
 
+  // ---------- elementos: telas ----------
+  var tituloTela = document.getElementById("tituloTela");
+  var subtituloTela = document.getElementById("subtituloTela");
+  var telaLogin = document.getElementById("telaLogin");
+  var telaFormulario = document.getElementById("telaFormulario");
+
+  // ---------- elementos: login ----------
+  var formularioLogin = document.getElementById("formularioLogin");
+  var campoUsuario = document.getElementById("usuario");
+  var campoSenha = document.getElementById("senha");
+  var erroLogin = document.getElementById("erroLogin");
+  var botaoLogin = document.getElementById("botaoLogin");
+
+  // ---------- elementos: formulário de manutenção ----------
+  var nomeMotoristaLogado = document.getElementById("nomeMotoristaLogado");
+  var botaoSair = document.getElementById("botaoSair");
   var form = document.getElementById("formulario");
   var campoTipo = document.getElementById("tipo");
   var outroWrap = document.getElementById("outroWrap");
   var campoTipoOutro = document.getElementById("tipoOutro");
   var dataTexto = document.getElementById("dataTexto");
-  var campoMotorista = document.getElementById("motorista");
   var campoPlaca = document.getElementById("placa");
   var inputFoto = document.getElementById("inputFoto");
   var botaoFoto = document.getElementById("botaoFoto");
@@ -439,65 +525,25 @@
   var fotos = []; // { filename, mimeType, base64, previewUrl }
   var dataAtualISO = "";
   var timerFechamentoModal = null;
-  var CHAVE_CACHE_LISTAS = "cva_listas_cache_v1";
 
-  // ---- Carrega motoristas e placas cadastrados (planilha no Apps Script) ----
-  function preencherSelect(select, itens, textoPlaceholder){
-    select.innerHTML = "";
-    var placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.disabled = true;
-    placeholder.selected = true;
-    placeholder.textContent = textoPlaceholder;
-    select.appendChild(placeholder);
-    itens.forEach(function(item){
-      var opt = document.createElement("option");
-      opt.value = item;
-      opt.textContent = item;
-      select.appendChild(opt);
-    });
-    select.disabled = false;
-  }
-
-  function aplicarListas(dados, deCache){
-    preencherSelect(campoMotorista, dados.motoristas || [], "Selecione");
-    preencherSelect(campoPlaca, dados.placas || [], "Selecione");
-    if (deCache){
-      mostrarErro("Não foi possível atualizar a lista agora — mostrando a última versão salva neste aparelho. Se cadastros recentes não aparecerem, tente novamente com internet.");
-    }
-  }
-
-  function falhaAoCarregarListas(){
-    var cache = null;
-    try { cache = JSON.parse(localStorage.getItem(CHAVE_CACHE_LISTAS) || "null"); } catch(e){}
-    if (cache){
-      aplicarListas(cache, true);
-    } else {
-      preencherSelect(campoMotorista, [], "Não foi possível carregar");
-      preencherSelect(campoPlaca, [], "Não foi possível carregar");
-      campoMotorista.disabled = true;
-      campoPlaca.disabled = true;
-      mostrarErro("Não foi possível carregar a lista de motoristas e placas. Verifique sua internet e recarregue a página.");
-    }
-  }
-
-  // Carrega as listas via JSONP (tag <script>), não via fetch — um fetch()
-  // comum para um domínio diferente (script.google.com) é bloqueado por
-  // CORS pelo navegador, mesmo a URL sendo pública; uma tag <script> não
-  // sofre essa restrição.
-  function carregarListas(){
-    var nomeCallback = "cvaListasCallback_" + Date.now();
+  // ============================================================
+  // JSONP genérico: usado para o login e para carregar a lista de
+  // placas. Uma tag <script> não sofre bloqueio de CORS, diferente de
+  // um fetch() comum para um domínio diferente (script.google.com).
+  // ============================================================
+  function jsonp(urlBase, timeoutMs, aoReceber, aoFalhar){
+    var nomeCallback = "cvaCallback_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
     var finalizado = false;
 
     var tagScript = document.createElement("script");
-    tagScript.src = SCRIPT_URL + "?acao=listas&callback=" + nomeCallback;
+    tagScript.src = urlBase + (urlBase.indexOf("?") === -1 ? "?" : "&") + "callback=" + nomeCallback;
 
     var timeoutId = setTimeout(function(){
       if (finalizado) return;
       finalizado = true;
       limpar();
-      falhaAoCarregarListas();
-    }, 10000);
+      aoFalhar();
+    }, timeoutMs);
 
     function limpar(){
       clearTimeout(timeoutId);
@@ -509,22 +555,155 @@
       if (finalizado) return;
       finalizado = true;
       limpar();
-      if (!dados || dados.ok === false){
-        falhaAoCarregarListas();
-        return;
-      }
-      try { localStorage.setItem(CHAVE_CACHE_LISTAS, JSON.stringify(dados)); } catch(e){}
-      aplicarListas(dados, false);
+      aoReceber(dados);
     };
 
     tagScript.onerror = function(){
       if (finalizado) return;
       finalizado = true;
       limpar();
-      falhaAoCarregarListas();
+      aoFalhar();
     };
 
     document.head.appendChild(tagScript);
+  }
+
+  // ============================================================
+  // Sessão do motorista (guardada só neste aparelho/navegador).
+  // Guarda apenas o nome — nunca o CPF.
+  // ============================================================
+  function obterSessao(){
+    try {
+      var bruto = localStorage.getItem(CHAVE_SESSAO);
+      if (!bruto) return null;
+      var sessao = JSON.parse(bruto);
+      return (sessao && sessao.nome) ? sessao : null;
+    } catch(e){ return null; }
+  }
+  function salvarSessao(nome){
+    try { localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ nome: nome, desde: Date.now() })); } catch(e){}
+  }
+  function limparSessao(){
+    try { localStorage.removeItem(CHAVE_SESSAO); } catch(e){}
+  }
+
+  function mostrarTelaLogin(){
+    telaLogin.style.display = "";
+    telaFormulario.style.display = "none";
+    tituloTela.textContent = "Entrar";
+    subtituloTela.textContent = "Faça login para registrar uma manutenção de veículo.";
+    campoSenha.value = "";
+  }
+  function mostrarTelaFormulario(nome){
+    nomeMotoristaLogado.textContent = nome;
+    telaLogin.style.display = "none";
+    telaFormulario.style.display = "";
+    tituloTela.textContent = "Reporte de Manutenção de Veículo";
+    subtituloTela.textContent = "Preencha os dados abaixo e anexe fotos do problema.";
+  }
+
+  function mostrarErroLogin(texto){
+    erroLogin.textContent = texto;
+    erroLogin.classList.add("mostrar");
+  }
+  function esconderErroLogin(){
+    erroLogin.classList.remove("mostrar");
+  }
+
+  formularioLogin.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    esconderErroLogin();
+
+    var usuario = campoUsuario.value.trim();
+    var senha = campoSenha.value.trim();
+    if (!usuario || !senha){
+      mostrarErroLogin("Preencha usuário e senha.");
+      return;
+    }
+    if (SCRIPT_URL.indexOf("COLE_AQUI") !== -1){
+      mostrarErroLogin("O app ainda não foi configurado: falta colar a URL do Apps Script no arquivo HTML.");
+      return;
+    }
+
+    botaoLogin.disabled = true;
+    botaoLogin.classList.add("carregando");
+
+    var url = SCRIPT_URL + "?acao=login&usuario=" + encodeURIComponent(usuario) + "&senha=" + encodeURIComponent(senha);
+    jsonp(url, 10000,
+      function(dados){
+        botaoLogin.disabled = false;
+        botaoLogin.classList.remove("carregando");
+        if (dados && dados.ok && dados.nome){
+          salvarSessao(dados.nome);
+          mostrarTelaFormulario(dados.nome);
+          garantirListaPlacasCarregada();
+        } else {
+          mostrarErroLogin((dados && dados.error) || "Usuário ou senha inválidos.");
+        }
+      },
+      function(){
+        botaoLogin.disabled = false;
+        botaoLogin.classList.remove("carregando");
+        mostrarErroLogin("Não foi possível verificar agora. Verifique sua internet e tente novamente.");
+      }
+    );
+  });
+
+  botaoSair.addEventListener("click", function(){
+    limparSessao();
+    campoUsuario.value = "";
+    mostrarTelaLogin();
+  });
+
+  // ============================================================
+  // Lista de placas (carregada só depois do login)
+  // ============================================================
+  var placasCarregadas = false;
+
+  function preencherSelectPlaca(itens){
+    campoPlaca.innerHTML = "";
+    var placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    placeholder.textContent = "Selecione";
+    campoPlaca.appendChild(placeholder);
+    itens.forEach(function(item){
+      var opt = document.createElement("option");
+      opt.value = item;
+      opt.textContent = item;
+      campoPlaca.appendChild(opt);
+    });
+    campoPlaca.disabled = false;
+  }
+
+  function falhaAoCarregarPlacas(){
+    var cache = null;
+    try { cache = JSON.parse(localStorage.getItem(CHAVE_CACHE_PLACAS) || "null"); } catch(e){}
+    if (cache && cache.placas){
+      preencherSelectPlaca(cache.placas);
+      mostrarErro("Não foi possível atualizar a lista de placas agora — mostrando a última versão salva neste aparelho.");
+    } else {
+      preencherSelectPlaca([]);
+      campoPlaca.disabled = true;
+      mostrarErro("Não foi possível carregar a lista de placas. Verifique sua internet e recarregue a página.");
+    }
+  }
+
+  function garantirListaPlacasCarregada(){
+    if (placasCarregadas) return;
+    jsonp(SCRIPT_URL + "?acao=listas", 10000,
+      function(dados){
+        if (!dados || dados.ok === false){
+          falhaAoCarregarPlacas();
+          return;
+        }
+        placasCarregadas = true;
+        try { localStorage.setItem(CHAVE_CACHE_PLACAS, JSON.stringify(dados)); } catch(e){}
+        preencherSelectPlaca(dados.placas || []);
+      },
+      falhaAoCarregarPlacas
+    );
   }
 
   // Data da solicitação = sempre o dia de hoje (não editável pelo motorista)
@@ -543,7 +722,18 @@
     dataTexto.textContent = formatarDataBR(dataAtualISO);
   }
   atualizarData();
-  carregarListas();
+
+  // ============================================================
+  // Inicialização: se já existe sessão salva neste aparelho, pula
+  // direto para o formulário. Senão, mostra a tela de login.
+  // ============================================================
+  var sessaoInicial = obterSessao();
+  if (sessaoInicial){
+    mostrarTelaFormulario(sessaoInicial.nome);
+    garantirListaPlacasCarregada();
+  } else {
+    mostrarTelaLogin();
+  }
 
   // Campo "Outro" tipo de manutenção
   campoTipo.addEventListener("change", function(){
@@ -663,6 +853,12 @@
     ev.preventDefault();
     esconderErro();
 
+    var sessao = obterSessao();
+    if (!sessao || !sessao.nome){
+      mostrarTelaLogin();
+      return;
+    }
+
     if (!form.checkValidity()){
       form.reportValidity();
       return;
@@ -671,17 +867,13 @@
       mostrarErro("Adicione pelo menos uma foto do problema.");
       return;
     }
-    if (SCRIPT_URL.indexOf("COLE_AQUI") !== -1){
-      mostrarErro("O app ainda não foi configurado: falta colar a URL do Apps Script no arquivo HTML (veja as instruções do Codigo_AppsScript.gs).");
-      return;
-    }
 
     var tipoFinal = campoTipo.value === "Outro" && campoTipoOutro.value.trim()
       ? "Outro – " + campoTipoOutro.value.trim()
       : campoTipo.value;
 
     var payload = {
-      motorista: document.getElementById("motorista").value.trim(),
+      motorista: sessao.nome,
       placa: campoPlaca.value.trim(),
       km: document.getElementById("km").value,
       tipo: tipoFinal,
