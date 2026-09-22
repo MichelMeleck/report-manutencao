@@ -323,6 +323,15 @@
     display:flex; align-items:center; justify-content:center;
     margin:0 auto 18px;
   }
+  .modal-card .icone.icone-erro{
+    background:var(--erro-claro);
+    color:var(--erro);
+  }
+  .modal-card button.botao-secundario{
+    background:none;
+    border:1px solid var(--borda);
+    color:var(--texto);
+  }
   .modal-card h2{ margin:0 0 8px; font-size:19px; }
   .modal-card p{ color:var(--texto-suave); font-size:14px; line-height:1.5; margin:0 0 22px; }
   .modal-card button{
@@ -399,7 +408,7 @@
       <div class="duas-colunas">
         <div class="campo">
           <label for="placa">Placa <span class="obrig">*</span></label>
-          <input type="text" id="placa" name="placa" placeholder="AAA0000 ou AAA0A00" maxlength="8" autocapitalize="characters" autocomplete="off" required>
+          <input type="text" id="placa" name="placa" placeholder="AAA0A00" maxlength="8" autocapitalize="characters" autocomplete="off" required>
         </div>
         <div class="campo">
           <label>Data</label>
@@ -477,6 +486,17 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modalErro">
+  <div class="modal-card">
+    <div class="icone icone-erro">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.5v5.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="16.3" r="1.1" fill="currentColor"/></svg>
+    </div>
+    <h2 id="modalErroTitulo">Placa não Cadastrada no Sistema</h2>
+    <p id="modalErroTexto">Verifique a placa digitada ou fale com seu supervisor.</p>
+    <button type="button" class="botao-secundario" id="botaoFecharModalErro">OK</button>
+  </div>
+</div>
+
 <script>
 (function(){
   "use strict";
@@ -523,6 +543,10 @@
   var botaoEnviar = document.getElementById("botaoEnviar");
   var modalSucesso = document.getElementById("modalSucesso");
   var botaoFecharModal = document.getElementById("botaoFecharModal");
+  var modalErro = document.getElementById("modalErro");
+  var modalErroTitulo = document.getElementById("modalErroTitulo");
+  var modalErroTexto = document.getElementById("modalErroTexto");
+  var botaoFecharModalErro = document.getElementById("botaoFecharModalErro");
 
   var fotos = []; // { filename, mimeType, base64, previewUrl }
   var dataAtualISO = "";
@@ -825,6 +849,20 @@
     if (ev.target === modalSucesso) fecharModalSucesso();
   });
 
+  function abrirModalErro(titulo, texto){
+    modalErroTitulo.textContent = titulo;
+    modalErroTexto.textContent = texto;
+    modalErro.classList.add("mostrar");
+    botaoFecharModalErro.focus();
+  }
+  function fecharModalErro(){
+    modalErro.classList.remove("mostrar");
+  }
+  botaoFecharModalErro.addEventListener("click", fecharModalErro);
+  modalErro.addEventListener("click", function(ev){
+    if (ev.target === modalErro) fecharModalErro();
+  });
+
   function enviarSolicitacao(placa){
     var sessao = obterSessao();
     var tipoFinal = campoTipo.value === "Outro" && campoTipoOutro.value.trim()
@@ -894,13 +932,13 @@
       if (valido === false){
         botaoEnviar.disabled = false;
         botaoEnviar.classList.remove("carregando");
-        mostrarErro("Placa não encontrada no cadastro. Confira com seu supervisor.");
+        abrirModalErro("Placa não Cadastrada no Sistema", "Verifique a placa digitada ou fale com seu supervisor.");
         return;
       }
       if (valido === null){
         botaoEnviar.disabled = false;
         botaoEnviar.classList.remove("carregando");
-        mostrarErro("Não foi possível verificar a placa agora. Verifique sua internet e tente novamente.");
+        abrirModalErro("Não foi possível verificar a placa", "Verifique sua internet e tente novamente.");
         return;
       }
       enviarSolicitacao(placaDigitada);
