@@ -610,6 +610,7 @@
     <div class="linha-detalhe" id="modalClassificacaoWrap" style="display:none"><span class="rotulo">Classificação</span><span class="valor" id="modalClassificacao">–</span></div>
     <div class="linha-detalhe" id="modalPrazoWrap" style="display:none"><span class="rotulo">Prazo estimado</span><span class="valor" id="modalPrazo">–</span></div>
     <div class="linha-detalhe" id="modalAtualizadoPorWrap" style="display:none"><span class="rotulo">Atualizado por</span><span class="valor" id="modalAtualizadoPor">–</span></div>
+    <div class="linha-detalhe" id="modalMotivoRejeicaoWrap" style="display:none"><span class="rotulo">Motivo do cancelamento</span><span class="valor" id="modalMotivoRejeicao">–</span></div>
 
     <div id="modalFotosWrap" style="display:none">
       <div class="mover-titulo" style="margin-top:16px">Fotos</div>
@@ -660,6 +661,26 @@
     <div class="mover-botoes" id="modalBotoesMover"></div>
 
     <div class="aviso-modal" id="modalAviso"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL: motivo do cancelamento ============
+     Aparece sempre que uma solicitação (já aceita) é movida pra
+     "Cancelado", seja arrastando o card ou pelo botão "Mover para" —
+     o motivo é obrigatório. (O rejeitar de uma solicitação nova tem
+     seu próprio campo, dentro do modal de detalhes.) -->
+<div class="modal-overlay" id="modalMotivoCancelamento">
+  <div class="modal-card">
+    <div class="modal-topo">
+      <div><h2 style="font-size:17px">Motivo do cancelamento</h2></div>
+      <button type="button" class="fechar-modal" id="fecharModalMotivoCancelamento" aria-label="Fechar">✕</button>
+    </div>
+    <div class="campo-simples">
+      <label for="motivoCancelamentoInput">Explique o motivo do cancelamento</label>
+      <input type="text" id="motivoCancelamentoInput" placeholder="Ex: cliente desistiu, duplicado, etc.">
+    </div>
+    <div class="aviso-modal" id="motivoCancelamentoAviso">Informe o motivo do cancelamento para continuar.</div>
+    <button type="button" class="botao-mover botao-rejeitar" id="botaoConfirmarMotivoCancelamento" style="margin-top:12px;width:100%">Confirmar cancelamento</button>
   </div>
 </div>
 
@@ -726,6 +747,8 @@
   var modalPrazo = document.getElementById("modalPrazo");
   var modalAtualizadoPorWrap = document.getElementById("modalAtualizadoPorWrap");
   var modalAtualizadoPor = document.getElementById("modalAtualizadoPor");
+  var modalMotivoRejeicaoWrap = document.getElementById("modalMotivoRejeicaoWrap");
+  var modalMotivoRejeicao = document.getElementById("modalMotivoRejeicao");
   var modalFotosWrap = document.getElementById("modalFotosWrap");
   var modalFotosGrid = document.getElementById("modalFotosGrid");
   var moverParaTitulo = document.getElementById("moverParaTitulo");
@@ -748,6 +771,13 @@
   var triagemPrazoDias = document.getElementById("triagemPrazoDias");
   var triagemPrestador = document.getElementById("triagemPrestador");
   var botaoConfirmarPrazo = document.getElementById("botaoConfirmarPrazo");
+
+  // ---------- elementos: motivo do cancelamento (cards já aceitos) ----------
+  var modalMotivoCancelamento = document.getElementById("modalMotivoCancelamento");
+  var fecharModalMotivoCancelamentoBtn = document.getElementById("fecharModalMotivoCancelamento");
+  var motivoCancelamentoInput = document.getElementById("motivoCancelamentoInput");
+  var motivoCancelamentoAviso = document.getElementById("motivoCancelamentoAviso");
+  var botaoConfirmarMotivoCancelamento = document.getElementById("botaoConfirmarMotivoCancelamento");
 
   var toastAviso = document.getElementById("toastAviso");
 
@@ -1031,7 +1061,11 @@
           if (!id) return;
           var itemArrastado = solicitacoesAtuais.filter(function(s){ return s.id === id; })[0];
           if (!itemArrastado || itemArrastado.status === coluna.chave) return;
-          moverPorArraste(id, coluna.chave);
+          if (coluna.chave === "cancelado"){
+            pedirMotivoCancelamento(id);
+          } else {
+            moverPorArraste(id, coluna.chave);
+          }
         });
       }
 
@@ -1163,6 +1197,13 @@
       modalAtualizadoPorWrap.style.display = "none";
     }
 
+    if (item.status === "cancelado" && item.motivoRejeicao){
+      modalMotivoRejeicaoWrap.style.display = "flex";
+      modalMotivoRejeicao.textContent = item.motivoRejeicao;
+    } else {
+      modalMotivoRejeicaoWrap.style.display = "none";
+    }
+
     if (item.fotos && item.fotos.length){
       modalFotosWrap.style.display = "block";
       modalFotosGrid.innerHTML = "";
@@ -1201,7 +1242,11 @@
         botao.className = "botao-mover";
         botao.textContent = coluna.titulo;
         botao.addEventListener("click", function(){
-          moverSolicitacao(item.id, coluna.chave);
+          if (coluna.chave === "cancelado"){
+            pedirMotivoCancelamento(item.id);
+          } else {
+            moverSolicitacao(item.id, coluna.chave);
+          }
         });
         modalBotoesMover.appendChild(botao);
       });
@@ -1399,7 +1444,7 @@
   // arrastar-e-soltar dos cards. Só faz a chamada; quem decide o que
   // mostrar na tela é moverComOtimismo, logo abaixo.
   // ============================================================
-  function moverSolicitacaoNoServidor(id, novoStatus, callback){
+  function moverSolicitacaoNoServidor(id, novoStatus, motivo, callback){
     var sessao = obterSessaoPainel();
     if (!sessao){ callback(false, "Sessão expirada. Entre novamente."); return; }
 
@@ -1407,7 +1452,8 @@
       "&usuario=" + encodeURIComponent(sessao.usuario) +
       "&senha=" + encodeURIComponent(sessao.senha) +
       "&id=" + encodeURIComponent(id) +
-      "&status=" + encodeURIComponent(novoStatus);
+      "&status=" + encodeURIComponent(novoStatus) +
+      "&motivo=" + encodeURIComponent(motivo || "");
 
     jsonp(url, 12000,
       function(dados){
@@ -1423,37 +1469,81 @@
   // e só depois confirma em segundo plano — é isso que faz mover um
   // card parecer instantâneo. Se o servidor recusar (ex: sessão
   // expirou), desfaz o movimento e avisa num toast.
+  // "opcoes.motivo" só se aplica quando novoStatus é "cancelado".
   // ============================================================
-  function moverComOtimismo(id, novoStatus, aoIniciar){
+  function moverComOtimismo(id, novoStatus, opcoes){
+    opcoes = opcoes || {};
     var item = solicitacoesAtuais.filter(function(s){ return s.id === id; })[0];
     if (!item) return;
     var statusAnterior = item.status;
+    var motivoAnterior = item.motivoRejeicao;
     var sessao = obterSessaoPainel();
 
     item.status = novoStatus;
+    if (novoStatus === "cancelado" && opcoes.motivo) item.motivoRejeicao = opcoes.motivo;
     renderizarQuadro();
-    if (aoIniciar) aoIniciar();
+    if (opcoes.aoIniciar) opcoes.aoIniciar();
 
-    moverSolicitacaoNoServidor(id, novoStatus, function(ok, erro){
+    moverSolicitacaoNoServidor(id, novoStatus, opcoes.motivo, function(ok, erro){
       if (ok){
         if (sessao) item.atualizadoPor = sessao.nome;
       } else {
         item.status = statusAnterior;
+        item.motivoRejeicao = motivoAnterior;
         renderizarQuadro();
         mostrarAvisoRapido(erro);
       }
     });
   }
 
-  // Usado pelos botões "Mover para" dentro do modal.
+  // Usado pelos botões "Mover para" dentro do modal (exceto pra
+  // "Cancelado", que passa antes pelo modal de motivo, abaixo).
   function moverSolicitacao(id, novoStatus){
-    moverComOtimismo(id, novoStatus, fecharModal);
+    moverComOtimismo(id, novoStatus, { aoIniciar: fecharModal });
   }
 
-  // Usado ao soltar um card em outra coluna.
+  // Usado ao soltar um card em outra coluna (exceto "Cancelado").
   function moverPorArraste(id, novoStatus){
-    moverComOtimismo(id, novoStatus);
+    moverComOtimismo(id, novoStatus, {});
   }
+
+  // ============================================================
+  // Cancelamento de uma solicitação já aceita: exige informar o
+  // motivo antes de mover o card pra "Cancelado" — seja arrastando
+  // ou pelo botão "Mover para" dentro do modal de detalhes.
+  // ============================================================
+  var idCancelamentoPendente = null;
+
+  function pedirMotivoCancelamento(id){
+    idCancelamentoPendente = id;
+    motivoCancelamentoInput.value = "";
+    motivoCancelamentoAviso.classList.remove("mostrar");
+    modalMotivoCancelamento.classList.add("mostrar");
+    setTimeout(function(){ motivoCancelamentoInput.focus(); }, 50);
+  }
+
+  function fecharModalMotivoCancelamento(){
+    modalMotivoCancelamento.classList.remove("mostrar");
+    idCancelamentoPendente = null;
+  }
+
+  fecharModalMotivoCancelamentoBtn.addEventListener("click", fecharModalMotivoCancelamento);
+  modalMotivoCancelamento.addEventListener("click", function(ev){
+    if (ev.target === modalMotivoCancelamento) fecharModalMotivoCancelamento();
+  });
+
+  botaoConfirmarMotivoCancelamento.addEventListener("click", function(){
+    var motivo = motivoCancelamentoInput.value.trim();
+    if (!motivo){
+      motivoCancelamentoAviso.classList.add("mostrar");
+      motivoCancelamentoInput.focus();
+      return;
+    }
+    var id = idCancelamentoPendente;
+    fecharModalMotivoCancelamento();
+    fecharModal();
+    moverComOtimismo(id, "cancelado", { motivo: motivo });
+  });
 
   // ============================================================
   // Início: se já tem sessão salva neste aparelho, entra direto.
