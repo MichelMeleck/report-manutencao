@@ -467,29 +467,64 @@
     }
   }
 
+  function falhaAoCarregarListas(){
+    var cache = null;
+    try { cache = JSON.parse(localStorage.getItem(CHAVE_CACHE_LISTAS) || "null"); } catch(e){}
+    if (cache){
+      aplicarListas(cache, true);
+    } else {
+      preencherSelect(campoMotorista, [], "Não foi possível carregar");
+      preencherSelect(campoPlaca, [], "Não foi possível carregar");
+      campoMotorista.disabled = true;
+      campoPlaca.disabled = true;
+      mostrarErro("Não foi possível carregar a lista de motoristas e placas. Verifique sua internet e recarregue a página.");
+    }
+  }
+
+  // Carrega as listas via JSONP (tag <script>), não via fetch — um fetch()
+  // comum para um domínio diferente (script.google.com) é bloqueado por
+  // CORS pelo navegador, mesmo a URL sendo pública; uma tag <script> não
+  // sofre essa restrição.
   function carregarListas(){
-    fetch(SCRIPT_URL + "?acao=listas")
-      .then(function(resp){ return resp.json(); })
-      .then(function(dados){
-        if (!dados || dados.ok === false){
-          throw new Error((dados && dados.error) || "Falha ao carregar listas");
-        }
-        try { localStorage.setItem(CHAVE_CACHE_LISTAS, JSON.stringify(dados)); } catch(e){}
-        aplicarListas(dados, false);
-      })
-      .catch(function(){
-        var cache = null;
-        try { cache = JSON.parse(localStorage.getItem(CHAVE_CACHE_LISTAS) || "null"); } catch(e){}
-        if (cache){
-          aplicarListas(cache, true);
-        } else {
-          preencherSelect(campoMotorista, [], "Não foi possível carregar");
-          preencherSelect(campoPlaca, [], "Não foi possível carregar");
-          campoMotorista.disabled = true;
-          campoPlaca.disabled = true;
-          mostrarErro("Não foi possível carregar a lista de motoristas e placas. Verifique sua internet e recarregue a página.");
-        }
-      });
+    var nomeCallback = "cvaListasCallback_" + Date.now();
+    var finalizado = false;
+
+    var tagScript = document.createElement("script");
+    tagScript.src = SCRIPT_URL + "?acao=listas&callback=" + nomeCallback;
+
+    var timeoutId = setTimeout(function(){
+      if (finalizado) return;
+      finalizado = true;
+      limpar();
+      falhaAoCarregarListas();
+    }, 10000);
+
+    function limpar(){
+      clearTimeout(timeoutId);
+      delete window[nomeCallback];
+      if (tagScript.parentNode) tagScript.parentNode.removeChild(tagScript);
+    }
+
+    window[nomeCallback] = function(dados){
+      if (finalizado) return;
+      finalizado = true;
+      limpar();
+      if (!dados || dados.ok === false){
+        falhaAoCarregarListas();
+        return;
+      }
+      try { localStorage.setItem(CHAVE_CACHE_LISTAS, JSON.stringify(dados)); } catch(e){}
+      aplicarListas(dados, false);
+    };
+
+    tagScript.onerror = function(){
+      if (finalizado) return;
+      finalizado = true;
+      limpar();
+      falhaAoCarregarListas();
+    };
+
+    document.head.appendChild(tagScript);
   }
 
   // Data da solicitação = sempre o dia de hoje (não editável pelo motorista)
