@@ -315,6 +315,28 @@
   }
   .card .fotos-tag svg{ width:13px; height:13px; }
 
+  .prazo-badge{
+    align-self:flex-start;
+    font-size:11px;
+    font-weight:700;
+    padding:3px 9px;
+    border-radius:20px;
+    margin-top:2px;
+  }
+  .prazo-verde{ background:var(--verde-claro); color:var(--verde-escuro); }
+  .prazo-amarelo{ background:var(--amarelo-claro); color:var(--amarelo); }
+  .prazo-vermelho{ background:var(--erro-claro); color:var(--erro); }
+
+  .card[draggable="true"]{ cursor:grab; }
+  .card[draggable="true"]:active{ cursor:grabbing; }
+  .card.arrastando{ opacity:.45; }
+  .coluna-cards-alvo{
+    background:rgba(31,122,77,.08);
+    outline:2px dashed var(--verde);
+    outline-offset:-4px;
+    border-radius:12px;
+  }
+
   .carregando-quadro, .erro-quadro{
     color:var(--texto-suave);
     font-size:14px;
@@ -443,6 +465,55 @@
   }
   .aviso-modal.mostrar{ display:block; }
 
+  .botao-aceitar{ background:var(--verde); color:#fff; border-color:var(--verde); }
+  .botao-rejeitar{ background:var(--erro); color:#fff; border-color:var(--erro); }
+
+  .campo-simples{
+    border:1px solid var(--borda);
+    border-radius:10px;
+    padding:10px 12px;
+    margin-top:4px;
+  }
+  .campo-simples label{
+    display:block;
+    font-size:12px;
+    font-weight:600;
+    color:var(--texto-suave);
+    margin-bottom:6px;
+  }
+  .campo-simples input{
+    width:100%;
+    font-size:15px;
+    font-family:inherit;
+    color:var(--texto);
+    background:transparent;
+    border:none;
+    padding:4px 0 2px;
+    outline:none;
+  }
+
+  /* ---------- toast (avisos rápidos) ---------- */
+  .toast{
+    position:fixed;
+    bottom:20px;
+    left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--erro);
+    color:#fff;
+    padding:12px 18px;
+    border-radius:12px;
+    font-size:13.5px;
+    font-weight:600;
+    box-shadow:0 8px 24px rgba(0,0,0,.25);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s, transform .2s;
+    z-index:2000;
+    max-width:90vw;
+    text-align:center;
+  }
+  .toast.mostrar{ opacity:1; transform:translateX(-50%) translateY(0); }
+
   @media (prefers-reduced-motion: reduce){
     .spinner, .botao-icone.girando svg{ animation:none; }
     .modal-card{ animation:none; }
@@ -536,6 +607,8 @@
     <div class="linha-detalhe"><span class="rotulo">Tipo</span><span class="valor" id="modalTipo">–</span></div>
     <div class="linha-detalhe"><span class="rotulo">Enviado em</span><span class="valor" id="modalData">–</span></div>
     <div class="linha-detalhe"><span class="rotulo">Descrição</span><span class="valor" id="modalDescricao">–</span></div>
+    <div class="linha-detalhe" id="modalClassificacaoWrap" style="display:none"><span class="rotulo">Classificação</span><span class="valor" id="modalClassificacao">–</span></div>
+    <div class="linha-detalhe" id="modalPrazoWrap" style="display:none"><span class="rotulo">Prazo estimado</span><span class="valor" id="modalPrazo">–</span></div>
     <div class="linha-detalhe" id="modalAtualizadoPorWrap" style="display:none"><span class="rotulo">Atualizado por</span><span class="valor" id="modalAtualizadoPor">–</span></div>
 
     <div id="modalFotosWrap" style="display:none">
@@ -543,12 +616,56 @@
       <div class="fotos-modal-grid" id="modalFotosGrid"></div>
     </div>
 
-    <div class="mover-titulo">Mover para</div>
+    <!-- Triagem: só aparece pra solicitações ainda em "Nova Solicitação" -->
+    <div id="modalTriagem" style="display:none">
+      <div class="mover-titulo">O que fazer com essa solicitação?</div>
+
+      <div class="mover-botoes" id="triagemBotoesInicial">
+        <button type="button" class="botao-mover botao-aceitar" id="botaoAceitar">✓ Aceitar</button>
+        <button type="button" class="botao-mover botao-rejeitar" id="botaoRejeitar">✕ Rejeitar</button>
+      </div>
+
+      <div class="mover-botoes" id="triagemBotoesClassificacao" style="display:none"></div>
+
+      <div id="triagemMotivoWrap" style="display:none">
+        <div class="campo-simples">
+          <label for="triagemMotivo">Motivo (classificação "Outros")</label>
+          <input type="text" id="triagemMotivo" placeholder="Descreva o motivo">
+        </div>
+        <button type="button" class="botao-mover" id="botaoContinuarMotivo" style="margin-top:8px;width:100%">Continuar</button>
+      </div>
+
+      <div id="triagemPrazoWrap" style="display:none">
+        <div class="campo-simples">
+          <label for="triagemPrazoDias">Prazo estimado (em dias)</label>
+          <input type="number" id="triagemPrazoDias" min="1" max="365" placeholder="Ex: 3" inputmode="numeric">
+        </div>
+        <button type="button" class="botao-mover botao-aceitar" id="botaoConfirmarPrazo" style="margin-top:8px;width:100%">Confirmar e mover para Em Andamento</button>
+      </div>
+    </div>
+
+    <div class="mover-titulo" id="moverParaTitulo">Mover para</div>
     <div class="mover-botoes" id="modalBotoesMover"></div>
 
     <div class="aviso-modal" id="modalAviso"></div>
   </div>
 </div>
+
+<!-- ===================== POPUP DE PLACA DUPLICADA ===================== -->
+<div class="modal-overlay" id="modalDuplicidade">
+  <div class="modal-card" style="max-width:380px">
+    <div class="modal-topo">
+      <div><h2 style="font-size:17px">Solicitações repetidas</h2></div>
+    </div>
+    <p style="font-size:13.5px;color:var(--texto-suave);line-height:1.5;margin:0 0 18px" id="duplicidadeTexto"></p>
+    <div class="mover-botoes">
+      <button type="button" class="botao-mover botao-aceitar" id="botaoUnificar">Unificar</button>
+      <button type="button" class="botao-mover" id="botaoManterSeparados">Manter separadas</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toastAviso"></div>
 
 <script>
 (function(){
@@ -564,10 +681,18 @@
   var INTERVALO_ATUALIZACAO_MS = 45000;
 
   var COLUNAS = [
-    { chave: "novo", titulo: "Novo", cor: "#2A6FB0" },
+    { chave: "novo", titulo: "Nova Solicitação", cor: "#2A6FB0" },
     { chave: "em_andamento", titulo: "Em andamento", cor: "#B0821F" },
     { chave: "concluido", titulo: "Concluído", cor: "#1F7A4D" },
     { chave: "cancelado", titulo: "Cancelado", cor: "#C24A3B" }
+  ];
+
+  var CLASSIFICACOES = [
+    { chave: "preventiva", titulo: "Preventiva" },
+    { chave: "corretiva", titulo: "Corretiva" },
+    { chave: "pneus", titulo: "Pneus" },
+    { chave: "funilaria", titulo: "Funilaria" },
+    { chave: "outros", titulo: "Outros" }
   ];
 
   // ---------- elementos: login ----------
@@ -597,15 +722,44 @@
   var modalTipo = document.getElementById("modalTipo");
   var modalData = document.getElementById("modalData");
   var modalDescricao = document.getElementById("modalDescricao");
+  var modalClassificacaoWrap = document.getElementById("modalClassificacaoWrap");
+  var modalClassificacao = document.getElementById("modalClassificacao");
+  var modalPrazoWrap = document.getElementById("modalPrazoWrap");
+  var modalPrazo = document.getElementById("modalPrazo");
   var modalAtualizadoPorWrap = document.getElementById("modalAtualizadoPorWrap");
   var modalAtualizadoPor = document.getElementById("modalAtualizadoPor");
   var modalFotosWrap = document.getElementById("modalFotosWrap");
   var modalFotosGrid = document.getElementById("modalFotosGrid");
+  var moverParaTitulo = document.getElementById("moverParaTitulo");
   var modalBotoesMover = document.getElementById("modalBotoesMover");
   var modalAviso = document.getElementById("modalAviso");
 
+  // ---------- elementos: triagem (aceitar/rejeitar) ----------
+  var modalTriagem = document.getElementById("modalTriagem");
+  var triagemBotoesInicial = document.getElementById("triagemBotoesInicial");
+  var botaoAceitar = document.getElementById("botaoAceitar");
+  var botaoRejeitar = document.getElementById("botaoRejeitar");
+  var triagemBotoesClassificacao = document.getElementById("triagemBotoesClassificacao");
+  var triagemMotivoWrap = document.getElementById("triagemMotivoWrap");
+  var triagemMotivo = document.getElementById("triagemMotivo");
+  var botaoContinuarMotivo = document.getElementById("botaoContinuarMotivo");
+  var triagemPrazoWrap = document.getElementById("triagemPrazoWrap");
+  var triagemPrazoDias = document.getElementById("triagemPrazoDias");
+  var botaoConfirmarPrazo = document.getElementById("botaoConfirmarPrazo");
+
+  // ---------- elementos: popup de placa duplicada ----------
+  var modalDuplicidade = document.getElementById("modalDuplicidade");
+  var duplicidadeTexto = document.getElementById("duplicidadeTexto");
+  var botaoUnificar = document.getElementById("botaoUnificar");
+  var botaoManterSeparados = document.getElementById("botaoManterSeparados");
+
+  var toastAviso = document.getElementById("toastAviso");
+
   var solicitacoesAtuais = [];
   var timerAtualizacao = null;
+  var timerToast = null;
+  var triagemEstado = { classificacao: null, motivoOutro: "" };
+  var gruposIgnorados = {};
 
   // ============================================================
   // JSONP genérico (mesmo padrão do formulário dos motoristas).
@@ -645,6 +799,41 @@
     };
 
     document.head.appendChild(tagScript);
+  }
+
+  function mostrarAvisoRapido(texto){
+    toastAviso.textContent = texto;
+    toastAviso.classList.add("mostrar");
+    if (timerToast) clearTimeout(timerToast);
+    timerToast = setTimeout(function(){ toastAviso.classList.remove("mostrar"); }, 4000);
+  }
+
+  function rotuloClassificacao(chave){
+    var c = CLASSIFICACOES.filter(function(x){ return x.chave === chave; })[0];
+    return c ? c.titulo : chave;
+  }
+
+  // ============================================================
+  // Calcula quantos dias faltam (ou passaram) do prazo estimado da
+  // manutenção, e a cor que o card deve mostrar: verde até 1 dia antes
+  // do prazo, amarelo no dia do prazo, vermelho se já passou.
+  // ============================================================
+  function calcularPrazo(item){
+    if (!item.prazoDataLimiteISO) return null;
+    var partes = item.prazoDataLimiteISO.split("-");
+    if (partes.length !== 3) return null;
+    var dataLimite = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+    var hoje = new Date();
+    var dataHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    var diffDias = Math.round((dataLimite - dataHoje) / (24 * 60 * 60 * 1000));
+
+    if (diffDias < 0){
+      return { cor: "vermelho", diffDias: diffDias, texto: "Atrasado " + Math.abs(diffDias) + (Math.abs(diffDias) === 1 ? " dia" : " dias") };
+    }
+    if (diffDias === 0){
+      return { cor: "amarelo", diffDias: diffDias, texto: "Vence hoje" };
+    }
+    return { cor: "verde", diffDias: diffDias, texto: "Prazo: " + diffDias + (diffDias === 1 ? " dia" : " dias") };
   }
 
   function obterSessaoPainel(){
@@ -830,15 +1019,54 @@
         });
       }
 
+      // Arrastar e soltar (só pra computador): "Nova Solicitação" não
+      // aceita cards soltos aqui — ela só se esvazia por Aceitar/Rejeitar.
+      if (coluna.chave !== "novo"){
+        listaCards.addEventListener("dragover", function(ev){
+          ev.preventDefault();
+          listaCards.classList.add("coluna-cards-alvo");
+        });
+        listaCards.addEventListener("dragleave", function(){
+          listaCards.classList.remove("coluna-cards-alvo");
+        });
+        listaCards.addEventListener("drop", function(ev){
+          ev.preventDefault();
+          listaCards.classList.remove("coluna-cards-alvo");
+          var id = ev.dataTransfer.getData("text/plain");
+          if (!id) return;
+          var itemArrastado = solicitacoesAtuais.filter(function(s){ return s.id === id; })[0];
+          if (!itemArrastado || itemArrastado.status === coluna.chave) return;
+          moverPorArraste(id, coluna.chave);
+        });
+      }
+
       elColuna.appendChild(listaCards);
       quadro.appendChild(elColuna);
     });
+
+    verificarDuplicidade();
   }
 
   function montarCard(item){
     var card = document.createElement("button");
     card.type = "button";
     card.className = "card";
+
+    // Só é possível arrastar depois de aceita (enquanto "Nova
+    // Solicitação", a única forma de sair da coluna é pelos botões
+    // Aceitar/Rejeitar dentro do card).
+    var podeArrastar = item.status !== "novo";
+    card.draggable = podeArrastar;
+    if (podeArrastar){
+      card.addEventListener("dragstart", function(ev){
+        ev.dataTransfer.setData("text/plain", item.id);
+        ev.dataTransfer.effectAllowed = "move";
+        card.classList.add("arrastando");
+      });
+      card.addEventListener("dragend", function(){
+        card.classList.remove("arrastando");
+      });
+    }
 
     var linhaTopo = document.createElement("div");
     linhaTopo.className = "placa";
@@ -847,7 +1075,9 @@
 
     var tipo = document.createElement("div");
     tipo.className = "tipo";
-    tipo.textContent = item.tipo || "Manutenção";
+    tipo.textContent = item.classificacao
+      ? rotuloClassificacao(item.classificacao) + (item.classificacao === "outros" && item.motivoOutro ? " – " + item.motivoOutro : "")
+      : (item.tipo || "Manutenção");
     card.appendChild(tipo);
 
     var motorista = document.createElement("div");
@@ -874,6 +1104,14 @@
       rodape.appendChild(fotosTag);
     }
     card.appendChild(rodape);
+
+    var prazoInfo = calcularPrazo(item);
+    if (prazoInfo){
+      var prazoEl = document.createElement("div");
+      prazoEl.className = "prazo-badge prazo-" + prazoInfo.cor;
+      prazoEl.textContent = prazoInfo.texto;
+      card.appendChild(prazoEl);
+    }
 
     card.addEventListener("click", function(){ abrirModalDetalhe(item.id); });
     return card;
@@ -909,6 +1147,22 @@
     modalData.textContent = item.dataHoraEnvio || "–";
     modalDescricao.textContent = item.descricao || "–";
 
+    if (item.classificacao){
+      modalClassificacaoWrap.style.display = "flex";
+      modalClassificacao.textContent = rotuloClassificacao(item.classificacao) +
+        (item.classificacao === "outros" && item.motivoOutro ? " – " + item.motivoOutro : "");
+    } else {
+      modalClassificacaoWrap.style.display = "none";
+    }
+
+    if (item.prazoDataLimite){
+      var prazoInfoModal = calcularPrazo(item);
+      modalPrazoWrap.style.display = "flex";
+      modalPrazo.textContent = item.prazoDataLimite + (prazoInfoModal ? " (" + prazoInfoModal.texto.toLowerCase() + ")" : "");
+    } else {
+      modalPrazoWrap.style.display = "none";
+    }
+
     if (item.atualizadoPor){
       modalAtualizadoPorWrap.style.display = "flex";
       modalAtualizadoPor.textContent = item.atualizadoPor;
@@ -936,20 +1190,149 @@
       modalFotosWrap.style.display = "none";
     }
 
-    modalBotoesMover.innerHTML = "";
-    COLUNAS.forEach(function(coluna){
-      if (coluna.chave === item.status) return;
+    if (item.status === "novo"){
+      moverParaTitulo.style.display = "none";
+      modalBotoesMover.style.display = "none";
+      modalBotoesMover.innerHTML = "";
+      modalTriagem.style.display = "block";
+      reiniciarTriagem();
+    } else {
+      modalTriagem.style.display = "none";
+      moverParaTitulo.style.display = "block";
+      modalBotoesMover.style.display = "flex";
+      modalBotoesMover.innerHTML = "";
+      COLUNAS.forEach(function(coluna){
+        if (coluna.chave === item.status || coluna.chave === "novo") return;
+        var botao = document.createElement("button");
+        botao.type = "button";
+        botao.className = "botao-mover";
+        botao.textContent = coluna.titulo;
+        botao.addEventListener("click", function(){
+          moverSolicitacao(item.id, coluna.chave);
+        });
+        modalBotoesMover.appendChild(botao);
+      });
+    }
+
+    modalDetalhe.classList.add("mostrar");
+  }
+
+  // ============================================================
+  // Fluxo de triagem (dentro do modal de detalhes, só pra cards em
+  // "Nova Solicitação"): Aceitar/Rejeitar → tipo de manutenção → (se
+  // "Outros", motivo) → prazo estimado em dias.
+  // ============================================================
+  function reiniciarTriagem(){
+    triagemEstado = { classificacao: null, motivoOutro: "" };
+    triagemBotoesInicial.style.display = "flex";
+    triagemBotoesClassificacao.style.display = "none";
+    triagemMotivoWrap.style.display = "none";
+    triagemPrazoWrap.style.display = "none";
+    triagemMotivo.value = "";
+    triagemPrazoDias.value = "";
+
+    triagemBotoesClassificacao.innerHTML = "";
+    CLASSIFICACOES.forEach(function(classificacao){
       var botao = document.createElement("button");
       botao.type = "button";
       botao.className = "botao-mover";
-      botao.textContent = coluna.titulo;
+      botao.textContent = classificacao.titulo;
       botao.addEventListener("click", function(){
-        moverSolicitacao(item.id, coluna.chave, botao);
+        triagemEstado.classificacao = classificacao.chave;
+        triagemBotoesClassificacao.style.display = "none";
+        if (classificacao.chave === "outros"){
+          triagemMotivoWrap.style.display = "block";
+          triagemMotivo.focus();
+        } else {
+          triagemPrazoWrap.style.display = "block";
+          triagemPrazoDias.focus();
+        }
       });
-      modalBotoesMover.appendChild(botao);
+      triagemBotoesClassificacao.appendChild(botao);
     });
+  }
 
-    modalDetalhe.classList.add("mostrar");
+  botaoAceitar.addEventListener("click", function(){
+    triagemBotoesInicial.style.display = "none";
+    triagemBotoesClassificacao.style.display = "flex";
+  });
+
+  botaoRejeitar.addEventListener("click", function(){
+    var id = modalDetalhe.dataset.idAtual;
+    moverSolicitacao(id, "cancelado");
+  });
+
+  botaoContinuarMotivo.addEventListener("click", function(){
+    var texto = triagemMotivo.value.trim();
+    if (!texto){ triagemMotivo.focus(); return; }
+    triagemEstado.motivoOutro = texto;
+    triagemMotivoWrap.style.display = "none";
+    triagemPrazoWrap.style.display = "block";
+    triagemPrazoDias.focus();
+  });
+
+  botaoConfirmarPrazo.addEventListener("click", function(){
+    var dias = parseInt(triagemPrazoDias.value, 10);
+    if (!dias || dias <= 0){
+      triagemPrazoDias.focus();
+      return;
+    }
+    var id = modalDetalhe.dataset.idAtual;
+    confirmarAceite(id, triagemEstado.classificacao, triagemEstado.motivoOutro, dias);
+  });
+
+  function confirmarAceite(id, classificacao, motivoOutro, prazoDias){
+    var sessao = obterSessaoPainel();
+    if (!sessao) return;
+
+    botaoConfirmarPrazo.disabled = true;
+    modalAviso.classList.remove("mostrar");
+
+    var url = SCRIPT_URL + "?acao=aceitarSolicitacao" +
+      "&usuario=" + encodeURIComponent(sessao.usuario) +
+      "&senha=" + encodeURIComponent(sessao.senha) +
+      "&id=" + encodeURIComponent(id) +
+      "&classificacao=" + encodeURIComponent(classificacao || "") +
+      "&motivoOutro=" + encodeURIComponent(motivoOutro || "") +
+      "&prazoDias=" + encodeURIComponent(prazoDias);
+
+    jsonp(url, 12000,
+      function(dados){
+        botaoConfirmarPrazo.disabled = false;
+        if (dados && dados.ok){
+          var dataLimite = new Date();
+          dataLimite.setDate(dataLimite.getDate() + prazoDias);
+          var iso = dataLimite.getFullYear() + "-" +
+            String(dataLimite.getMonth() + 1).padStart(2, "0") + "-" +
+            String(dataLimite.getDate()).padStart(2, "0");
+          var dataBr = String(dataLimite.getDate()).padStart(2, "0") + "/" +
+            String(dataLimite.getMonth() + 1).padStart(2, "0") + "/" +
+            dataLimite.getFullYear();
+
+          solicitacoesAtuais = solicitacoesAtuais.map(function(s){
+            if (s.id === id){
+              s.status = "em_andamento";
+              s.classificacao = classificacao;
+              s.motivoOutro = motivoOutro || "";
+              s.prazoDataLimiteISO = iso;
+              s.prazoDataLimite = dataBr;
+              s.atualizadoPor = sessao.nome;
+            }
+            return s;
+          });
+          renderizarQuadro();
+          fecharModal();
+        } else {
+          modalAviso.textContent = (dados && dados.error) || "Não foi possível aceitar a solicitação.";
+          modalAviso.classList.add("mostrar");
+        }
+      },
+      function(){
+        botaoConfirmarPrazo.disabled = false;
+        modalAviso.textContent = "Sem conexão agora. Tente novamente.";
+        modalAviso.classList.add("mostrar");
+      }
+    );
   }
 
   function fecharModal(){
@@ -960,13 +1343,14 @@
     if (ev.target === modalDetalhe) fecharModal();
   });
 
-  function moverSolicitacao(id, novoStatus, botaoClicado){
+  // ============================================================
+  // Chamada única ao servidor pra mudar o status de uma solicitação —
+  // usada tanto pelos botões do modal ("Mover para" / "Rejeitar")
+  // quanto pelo arrastar-e-soltar dos cards.
+  // ============================================================
+  function moverSolicitacaoNoServidor(id, novoStatus, callback){
     var sessao = obterSessaoPainel();
-    if (!sessao) return;
-
-    var botoes = modalBotoesMover.querySelectorAll("button");
-    botoes.forEach(function(b){ b.disabled = true; });
-    modalAviso.classList.remove("mostrar");
+    if (!sessao){ callback(false, "Sessão expirada. Entre novamente."); return; }
 
     var url = SCRIPT_URL + "?acao=atualizarStatus" +
       "&usuario=" + encodeURIComponent(sessao.usuario) +
@@ -976,9 +1360,7 @@
 
     jsonp(url, 12000,
       function(dados){
-        botoes.forEach(function(b){ b.disabled = false; });
         if (dados && dados.ok){
-          // Atualiza localmente e re-renderiza sem precisar buscar tudo de novo.
           solicitacoesAtuais = solicitacoesAtuais.map(function(s){
             if (s.id === id){
               s.status = novoStatus;
@@ -986,20 +1368,125 @@
             }
             return s;
           });
-          renderizarQuadro();
-          fecharModal();
+          callback(true);
         } else {
-          modalAviso.textContent = (dados && dados.error) || "Não foi possível mover a solicitação.";
-          modalAviso.classList.add("mostrar");
+          callback(false, (dados && dados.error) || "Não foi possível mover a solicitação.");
+        }
+      },
+      function(){ callback(false, "Sem conexão agora. Tente novamente."); }
+    );
+  }
+
+  // Usado pelos botões dentro do modal (mostra erro ali dentro).
+  function moverSolicitacao(id, novoStatus){
+    var botoes = modalBotoesMover.querySelectorAll("button");
+    botoes.forEach(function(b){ b.disabled = true; });
+    modalAviso.classList.remove("mostrar");
+
+    moverSolicitacaoNoServidor(id, novoStatus, function(ok, erro){
+      botoes.forEach(function(b){ b.disabled = false; });
+      if (ok){
+        renderizarQuadro();
+        fecharModal();
+      } else {
+        modalAviso.textContent = erro;
+        modalAviso.classList.add("mostrar");
+      }
+    });
+  }
+
+  // Usado ao soltar um card em outra coluna (mostra erro num toast).
+  function moverPorArraste(id, novoStatus){
+    moverSolicitacaoNoServidor(id, novoStatus, function(ok, erro){
+      if (ok) renderizarQuadro();
+      else mostrarAvisoRapido(erro);
+    });
+  }
+
+  // ============================================================
+  // Placas repetidas: se houver mais de uma solicitação da mesma
+  // placa em "Nova Solicitação" ou "Em andamento", pergunta se quer
+  // unificar num card só ou manter separadas. Só pergunta uma vez por
+  // grupo (enquanto a página não for recarregada).
+  // ============================================================
+  function verificarDuplicidade(){
+    if (modalDetalhe.classList.contains("mostrar")) return;
+    if (modalDuplicidade.classList.contains("mostrar")) return;
+
+    var colunasChecadas = ["novo", "em_andamento"];
+    var grupos = {};
+    solicitacoesAtuais.forEach(function(item){
+      if (colunasChecadas.indexOf(item.status) === -1) return;
+      if (!item.placa) return;
+      var chave = item.status + "|" + item.placa.toUpperCase();
+      if (!grupos[chave]) grupos[chave] = [];
+      grupos[chave].push(item);
+    });
+
+    var chaveEncontrada = Object.keys(grupos).filter(function(k){ return grupos[k].length > 1; })[0];
+    if (!chaveEncontrada) return;
+
+    var itens = grupos[chaveEncontrada];
+    var idsOrdenados = itens.map(function(i){ return i.id; }).sort();
+    var assinatura = chaveEncontrada + "|" + idsOrdenados.join(",");
+    if (gruposIgnorados[assinatura]) return;
+
+    // A solicitação mais antiga do grupo vira a "principal" — é nela
+    // que as outras serão unificadas.
+    var ordenadosPorData = itens.slice().sort(function(a, b){
+      return (a.dataHoraEnvio || "").localeCompare(b.dataHoraEnvio || "");
+    });
+    var principal = ordenadosPorData[0];
+
+    duplicidadeTexto.textContent =
+      "A placa " + itens[0].placa + " tem " + itens.length + " solicitações na coluna \"" +
+      rotuloStatus(itens[0].status) + "\". Deseja unificar tudo em um card só, ou manter cada uma separada?";
+    modalDuplicidade.dataset.assinatura = assinatura;
+    modalDuplicidade.dataset.ids = idsOrdenados.join(",");
+    modalDuplicidade.dataset.idPrincipal = principal.id;
+    modalDuplicidade.classList.add("mostrar");
+  }
+
+  botaoManterSeparados.addEventListener("click", function(){
+    gruposIgnorados[modalDuplicidade.dataset.assinatura] = true;
+    modalDuplicidade.classList.remove("mostrar");
+  });
+
+  botaoUnificar.addEventListener("click", function(){
+    var sessao = obterSessaoPainel();
+    if (!sessao) return;
+
+    botaoUnificar.disabled = true;
+    botaoManterSeparados.disabled = true;
+
+    var url = SCRIPT_URL + "?acao=mesclarSolicitacoes" +
+      "&usuario=" + encodeURIComponent(sessao.usuario) +
+      "&senha=" + encodeURIComponent(sessao.senha) +
+      "&ids=" + encodeURIComponent(modalDuplicidade.dataset.ids) +
+      "&idPrincipal=" + encodeURIComponent(modalDuplicidade.dataset.idPrincipal);
+
+    jsonp(url, 12000,
+      function(dados){
+        botaoUnificar.disabled = false;
+        botaoManterSeparados.disabled = false;
+        modalDuplicidade.classList.remove("mostrar");
+        if (dados && dados.ok){
+          carregarSolicitacoes(true); // busca os dados já unificados do servidor
+        } else {
+          mostrarAvisoRapido((dados && dados.error) || "Não foi possível unificar as solicitações.");
         }
       },
       function(){
-        botoes.forEach(function(b){ b.disabled = false; });
-        modalAviso.textContent = "Sem conexão agora. Tente novamente.";
-        modalAviso.classList.add("mostrar");
+        botaoUnificar.disabled = false;
+        botaoManterSeparados.disabled = false;
+        mostrarAvisoRapido("Sem conexão agora. Tente novamente.");
       }
     );
-  }
+  });
+
+  modalDuplicidade.addEventListener("click", function(ev){
+    if (ev.target === modalDuplicidade) botaoManterSeparados.click();
+  });
 
   // ============================================================
   // Início: se já tem sessão salva neste aparelho, entra direto.
