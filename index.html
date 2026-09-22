@@ -375,13 +375,13 @@
     <form id="formularioLogin" novalidate>
       <div class="campo">
         <label for="usuario">Usuário <span class="obrig">*</span></label>
-        <input type="text" id="usuario" name="usuario" autocomplete="username" autocapitalize="words" required>
+        <input type="text" id="usuario" name="usuario" autocomplete="username" autocapitalize="words" placeholder="Primeiro Nome" required>
       </div>
       <div class="campo">
         <label for="senha">Senha <span class="obrig">*</span></label>
-        <input type="password" id="senha" name="senha" inputmode="numeric" autocomplete="current-password" placeholder="Senha" required>
+        <input type="password" id="senha" name="senha" inputmode="numeric" autocomplete="current-password" placeholder="Senha de 6 dígitos" maxlength="6" required>
       </div>
-      <p class="ajuda-login">Usuário é o seu primeiro nome. Senha é o seu CPF (com ou sem pontos e traço).</p>
+      <p class="ajuda-login">Usuário é o seu primeiro nome. Senha é o código de 6 dígitos cadastrado para você.</p>
 
       <div class="erro-msg" id="erroLogin"></div>
 
@@ -938,7 +938,7 @@
       if (valido === null){
         botaoEnviar.disabled = false;
         botaoEnviar.classList.remove("carregando");
-        abrirModalErro("Não foi possível verificar a placa", "Verifique sua internet e tente novamente.");
+        abrirModalErro("Placa não cadastrada", "Corrija as informações da placa do veículo.");
         return;
       }
       enviarSolicitacao(placaDigitada);
