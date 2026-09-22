@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reporte de Manutenção – Cheiro Verde Ambiental</title>
+<meta name="description" content="Formulário para motoristas reportarem manutenção de veículos, com fotos.">
+<meta name="theme-color" content="#1F7A4D">
+<style>
+  :root{
+    --verde:#1F7A4D;
+    --verde-escuro:#14532d;
+    --verde-claro:#E7F3EC;
+    --bg:#F6F8F6;
+    --card:#FFFFFF;
+    --texto:#1B2420;
+    --texto-suave:#5B6B62;
+    --borda:#DCE5DE;
+    --erro:#C24A3B;
+    --erro-claro:#FBEAE7;
+    --sombra:0 1px 3px rgba(27,36,32,.08), 0 6px 16px rgba(27,36,32,.06);
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#111813;
+      --card:#1A221C;
+      --texto:#EAF1EC;
+      --texto-suave:#9FB0A5;
+      --borda:#2A362C;
+      --verde-claro:#1C2C21;
+      --erro-claro:#301F1D;
+      --sombra:0 1px 3px rgba(0,0,0,.5), 0 6px 16px rgba(0,0,0,.35);
+    }
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg);
+    color:var(--texto);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:0 16px;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    min-height:100%;
+  }
+  .wrap{ max-width:520px; margin:0 auto; padding-bottom:48px; }
+
+  header{
+    padding-top:28px;
+    padding-bottom:20px;
+  }
+  .marca{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .marca .selo{
+    width:38px; height:38px; border-radius:10px;
+    background:var(--verde);
+    display:flex; align-items:center; justify-content:center;
+    flex:none;
+  }
+  .marca .selo svg{ width:20px; height:20px; }
+  .marca .nome{
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.02em;
+    color:var(--texto-suave);
+    text-transform:uppercase;
+  }
+  h1{
+    font-size:24px;
+    line-height:1.25;
+    margin:0 0 6px;
+    text-wrap:balance;
+  }
+  .sub{
+    color:var(--texto-suave);
+    font-size:14.5px;
+    line-height:1.5;
+    margin:0;
+  }
+
+  form{ display:flex; flex-direction:column; gap:16px; }
+
+  .campo{
+    background:var(--card);
+    border:1px solid var(--borda);
+    border-radius:14px;
+    padding:14px 16px;
+    box-shadow:var(--sombra);
+  }
+  .campo label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    color:var(--texto-suave);
+    margin-bottom:8px;
+  }
+  .campo label .obrig{ color:var(--erro); }
+  .duas-colunas{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  @media (max-width:420px){
+    .duas-colunas{ grid-template-columns:1fr; }
+  }
+
+  input[type=text],
+  input[type=number],
+  input[type=date],
+  select,
+  textarea{
+    width:100%;
+    font-size:16px;
+    font-family:inherit;
+    color:var(--texto);
+    background:transparent;
+    border:none;
+    padding:6px 0 2px;
+    outline:none;
+  }
+  textarea{ resize:vertical; min-height:84px; line-height:1.5; }
+  select{ appearance:none; -webkit-appearance:none; background:transparent; }
+  .select-wrap{ position:relative; }
+  .select-wrap::after{
+    content:"";
+    position:absolute; right:2px; top:50%; transform:translateY(-60%);
+    width:9px; height:9px;
+    border-right:2px solid var(--texto-suave);
+    border-bottom:2px solid var(--texto-suave);
+    transform-origin:center;
+    rotate:45deg;
+    pointer-events:none;
+  }
+  input:focus, select:focus, textarea:focus{ outline:none; }
+  .campo:focus-within{ border-color:var(--verde); }
+
+  .outro-wrap{ margin-top:10px; display:none; }
+  .outro-wrap.mostrar{ display:block; }
+  .outro-wrap input{ border-top:1px solid var(--borda); padding-top:10px; }
+
+  /* Fotos */
+  .fotos-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(84px,1fr));
+    gap:8px;
+    margin-top:10px;
+  }
+  .foto-item{
+    position:relative;
+    aspect-ratio:1;
+    border-radius:10px;
+    overflow:hidden;
+    background:var(--verde-claro);
+  }
+  .foto-item img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .foto-item button{
+    position:absolute; top:4px; right:4px;
+    width:22px; height:22px;
+    border-radius:50%;
+    border:none;
+    background:rgba(20,20,20,.65);
+    color:#fff;
+    font-size:13px;
+    line-height:1;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .botao-foto{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%;
+    padding:14px;
+    border-radius:10px;
+    border:1.5px dashed var(--borda);
+    background:var(--verde-claro);
+    color:var(--verde-escuro);
+    font-weight:600;
+    font-size:14.5px;
+    cursor:pointer;
+  }
+  .fotos-legenda{
+    font-size:12px;
+    color:var(--texto-suave);
+    margin-top:8px;
+  }
+  input[type=file]{ display:none; }
+
+  button.enviar{
+    width:100%;
+    padding:16px;
+    border:none;
+    border-radius:14px;
+    background:var(--verde);
+    color:#fff;
+    font-size:16px;
+    font-weight:700;
+    letter-spacing:.01em;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+  }
+  button.enviar:active{ background:var(--verde-escuro); }
+  button.enviar:disabled{ opacity:.6; cursor:default; }
+
+  .spinner{
+    width:16px; height:16px;
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,.4);
+    border-top-color:#fff;
+    animation:girar .7s linear infinite;
+    display:none;
+  }
+  button.enviar.carregando .spinner{ display:inline-block; }
+  button.enviar.carregando .rotulo-normal{ display:none; }
+  @keyframes girar{ to{ transform:rotate(360deg); } }
+
+  .erro-msg{
+    display:none;
+    background:var(--erro-claro);
+    color:var(--erro);
+    border-radius:12px;
+    padding:12px 14px;
+    font-size:13.5px;
+    line-height:1.5;
+  }
+  .erro-msg.mostrar{ display:block; }
+
+  /* Tela de sucesso */
+  .sucesso{
+    display:none;
+    text-align:center;
+    padding-top:18vh;
+  }
+  .sucesso.mostrar{ display:block; }
+  .sucesso .icone{
+    width:64px; height:64px;
+    border-radius:50%;
+    background:var(--verde-claro);
+    color:var(--verde);
+    display:flex; align-items:center; justify-content:center;
+    margin:0 auto 20px;
+  }
+  .sucesso h2{ margin:0 0 8px; font-size:21px; }
+  .sucesso p{ color:var(--texto-suave); font-size:14.5px; margin:0 0 28px; }
+  .sucesso button{
+    padding:13px 22px;
+    border-radius:12px;
+    border:1.5px solid var(--verde);
+    background:transparent;
+    color:var(--verde);
+    font-weight:700;
+    font-size:14.5px;
+    cursor:pointer;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .spinner{ animation:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="marca">
+      <span class="selo">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 13l1.6-5.2A2 2 0 0 1 6.5 6.3h11a2 2 0 0 1 1.9 1.4L21 13v6a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-1H6v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
+          <circle cx="7.5" cy="16.5" r="1.4" fill="#fff"/>
+          <circle cx="16.5" cy="16.5" r="1.4" fill="#fff"/>
+        </svg>
+      </span>
+      <span class="nome">Cheiro Verde Ambiental</span>
+    </div>
+    <h1>Reporte de Manutenção de Veículo</h1>
+    <p class="sub">Preencha os dados abaixo e anexe fotos do problema. A solicitação é enviada direto para a equipe de manutenção.</p>
+  </header>
+
+  <form id="formulario" novalidate>
+
+    <div class="campo">
+      <label for="motorista">Motorista <span class="obrig">*</span></label>
+      <input type="text" id="motorista" name="motorista" placeholder="Seu nome completo" required autocomplete="name">
+    </div>
+
+    <div class="duas-colunas">
+      <div class="campo">
+        <label for="placa">Placa <span class="obrig">*</span></label>
+        <input type="text" id="placa" name="placa" placeholder="ABC1D23" required maxlength="8" style="text-transform:uppercase">
+      </div>
+      <div class="campo">
+        <label for="data">Data <span class="obrig">*</span></label>
+        <input type="date" id="data" name="data" required>
+      </div>
+    </div>
+
+    <div class="duas-colunas">
+      <div class="campo">
+        <label for="km">Quilometragem <span class="obrig">*</span></label>
+        <input type="number" id="km" name="km" placeholder="Ex: 125430" inputmode="numeric" min="0" required>
+      </div>
+      <div class="campo">
+        <label for="tipo">Tipo de manutenção <span class="obrig">*</span></label>
+        <div class="select-wrap">
+          <select id="tipo" name="tipo" required>
+            <option value="" disabled selected>Selecione</option>
+            <option>Mecânica</option>
+            <option>Elétrica</option>
+            <option>Pneus</option>
+            <option>Freios</option>
+            <option>Suspensão</option>
+            <option>Fluidos / Óleo</option>
+            <option>Ar-condicionado</option>
+            <option>Lataria / Carroceria</option>
+            <option>Outro</option>
+          </select>
+        </div>
+        <div class="outro-wrap" id="outroWrap">
+          <input type="text" id="tipoOutro" placeholder="Especifique o tipo">
+        </div>
+      </div>
+    </div>
+
+    <div class="campo">
+      <label for="descricao">Descrição do problema <span class="obrig">*</span></label>
+      <textarea id="descricao" name="descricao" placeholder="Descreva o que está acontecendo com o veículo" required></textarea>
+    </div>
+
+    <div class="campo">
+      <label>Fotos <span class="obrig">*</span></label>
+      <div class="fotos-grid" id="fotosGrid"></div>
+      <button type="button" class="botao-foto" id="botaoFoto">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 8a2 2 0 0 1 2-2h1.2a1 1 0 0 0 .86-.49l.7-1.18A1 1 0 0 1 9.62 4h4.76a1 1 0 0 1 .86.33l.7 1.18A1 1 0 0 0 16.8 6H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="13" r="3.2" stroke="currentColor" stroke-width="1.6"/></svg>
+        Adicionar foto
+      </button>
+      <input type="file" id="inputFoto" accept="image/*" capture="environment" multiple>
+      <p class="fotos-legenda">Até 5 fotos. Toque em "Adicionar foto" para tirar uma foto ou escolher da galeria.</p>
+    </div>
+
+    <div class="erro-msg" id="erroMsg"></div>
+
+    <button type="submit" class="enviar" id="botaoEnviar">
+      <span class="spinner"></span>
+      <span class="rotulo-normal">Enviar solicitação</span>
+    </button>
+  </form>
+
+  <div class="sucesso" id="telaSucesso">
+    <div class="icone">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h2>Solicitação enviada</h2>
+    <p>A equipe de manutenção vai receber os dados e as fotos por e-mail.</p>
+    <button type="button" id="botaoNova">Enviar outra solicitação</button>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ============================================================
+  // Cole aqui a URL do Apps Script (termina em /exec), depois de
+  // publicar o backend seguindo as instruções do arquivo
+  // Codigo_AppsScript.gs
+  // ============================================================
+  var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzc2yTYNt08aeXyM_gWmh9LKUpFxVP10p7H7rLn-udPIy8ZXIo9yXESgf3SQOCU_WxU-w/exec";
+
+  var MAX_FOTOS = 5;
+  var LADO_MAX_PX = 1600;
+  var QUALIDADE_JPEG = 0.72;
+
+  var form = document.getElementById("formulario");
+  var campoTipo = document.getElementById("tipo");
+  var outroWrap = document.getElementById("outroWrap");
+  var campoTipoOutro = document.getElementById("tipoOutro");
+  var campoData = document.getElementById("data");
+  var campoPlaca = document.getElementById("placa");
+  var inputFoto = document.getElementById("inputFoto");
+  var botaoFoto = document.getElementById("botaoFoto");
+  var fotosGrid = document.getElementById("fotosGrid");
+  var erroMsg = document.getElementById("erroMsg");
+  var botaoEnviar = document.getElementById("botaoEnviar");
+  var telaSucesso = document.getElementById("telaSucesso");
+  var botaoNova = document.getElementById("botaoNova");
+
+  var fotos = []; // { filename, mimeType, base64, previewUrl }
+
+  // Data padrão = hoje (horário local do aparelho)
+  function hojeISO(){
+    var d = new Date();
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var dia = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + m + "-" + dia;
+  }
+  campoData.value = hojeISO();
+
+  // Placa em maiúsculas
+  campoPlaca.addEventListener("input", function(){
+    var pos = campoPlaca.selectionStart;
+    campoPlaca.value = campoPlaca.value.toUpperCase();
+    campoPlaca.setSelectionRange(pos, pos);
+  });
+
+  // Campo "Outro" tipo de manutenção
+  campoTipo.addEventListener("change", function(){
+    var mostrar = campoTipo.value === "Outro";
+    outroWrap.classList.toggle("mostrar", mostrar);
+    campoTipoOutro.required = mostrar;
+  });
+
+  // Seleção / compressão de fotos
+  botaoFoto.addEventListener("click", function(){
+    if (fotos.length >= MAX_FOTOS){
+      mostrarErro("Você já adicionou o máximo de " + MAX_FOTOS + " fotos.");
+      return;
+    }
+    inputFoto.click();
+  });
+
+  inputFoto.addEventListener("change", function(){
+    var arquivos = Array.prototype.slice.call(inputFoto.files || []);
+    inputFoto.value = "";
+    arquivos.forEach(function(arquivo){
+      if (fotos.length >= MAX_FOTOS) return;
+      if (!/^image\//.test(arquivo.type)) return;
+      comprimirImagem(arquivo, function(resultado){
+        fotos.push(resultado);
+        renderizarFotos();
+      });
+    });
+  });
+
+  function comprimirImagem(arquivo, callback){
+    var leitor = new FileReader();
+    leitor.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        var largura = img.width, altura = img.height;
+        if (largura > altura && largura > LADO_MAX_PX){
+          altura = Math.round(altura * (LADO_MAX_PX / largura));
+          largura = LADO_MAX_PX;
+        } else if (altura > LADO_MAX_PX){
+          largura = Math.round(largura * (LADO_MAX_PX / altura));
+          altura = LADO_MAX_PX;
+        }
+        var canvas = document.createElement("canvas");
+        canvas.width = largura;
+        canvas.height = altura;
+        canvas.getContext("2d").drawImage(img, 0, 0, largura, altura);
+        var dataUrl = canvas.toDataURL("image/jpeg", QUALIDADE_JPEG);
+        callback({
+          filename: (arquivo.name || "foto").replace(/\.[^.]+$/, "") + ".jpg",
+          mimeType: "image/jpeg",
+          base64: dataUrl.split(",")[1],
+          previewUrl: dataUrl
+        });
+      };
+      img.src = e.target.result;
+    };
+    leitor.readAsDataURL(arquivo);
+  }
+
+  function renderizarFotos(){
+    fotosGrid.innerHTML = "";
+    fotos.forEach(function(foto, indice){
+      var item = document.createElement("div");
+      item.className = "foto-item";
+      var img = document.createElement("img");
+      img.src = foto.previewUrl;
+      img.alt = "Foto " + (indice + 1);
+      var remover = document.createElement("button");
+      remover.type = "button";
+      remover.textContent = "✕";
+      remover.setAttribute("aria-label", "Remover foto");
+      remover.addEventListener("click", function(){
+        fotos.splice(indice, 1);
+        renderizarFotos();
+      });
+      item.appendChild(img);
+      item.appendChild(remover);
+      fotosGrid.appendChild(item);
+    });
+  }
+
+  function mostrarErro(texto){
+    erroMsg.textContent = texto;
+    erroMsg.classList.add("mostrar");
+  }
+  function esconderErro(){
+    erroMsg.classList.remove("mostrar");
+  }
+
+  form.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    esconderErro();
+
+    if (!form.checkValidity()){
+      form.reportValidity();
+      return;
+    }
+    if (fotos.length === 0){
+      mostrarErro("Adicione pelo menos uma foto do problema.");
+      return;
+    }
+    if (SCRIPT_URL.indexOf("COLE_AQUI") !== -1){
+      mostrarErro("O app ainda não foi configurado: falta colar a URL do Apps Script no arquivo HTML (veja as instruções do Codigo_AppsScript.gs).");
+      return;
+    }
+
+    var tipoFinal = campoTipo.value === "Outro" && campoTipoOutro.value.trim()
+      ? "Outro – " + campoTipoOutro.value.trim()
+      : campoTipo.value;
+
+    var payload = {
+      motorista: document.getElementById("motorista").value.trim(),
+      placa: campoPlaca.value.trim(),
+      km: document.getElementById("km").value,
+      tipo: tipoFinal,
+      data: formatarDataBR(campoData.value),
+      descricao: document.getElementById("descricao").value.trim(),
+      fotos: fotos.map(function(f){
+        return { filename: f.filename, mimeType: f.mimeType, base64: f.base64 };
+      })
+    };
+
+    botaoEnviar.disabled = true;
+    botaoEnviar.classList.add("carregando");
+
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    })
+    .then(function(){
+      form.hidden = true;
+      telaSucesso.classList.add("mostrar");
+    })
+    .catch(function(){
+      mostrarErro("Não foi possível enviar agora. Verifique sua conexão com a internet e tente novamente.");
+    })
+    .finally(function(){
+      botaoEnviar.disabled = false;
+      botaoEnviar.classList.remove("carregando");
+    });
+  });
+
+  function formatarDataBR(iso){
+    var partes = iso.split("-");
+    return partes.length === 3 ? (partes[2] + "/" + partes[1] + "/" + partes[0]) : iso;
+  }
+
+  botaoNova.addEventListener("click", function(){
+    form.reset();
+    fotos = [];
+    renderizarFotos();
+    campoData.value = hojeISO();
+    outroWrap.classList.remove("mostrar");
+    form.hidden = false;
+    telaSucesso.classList.remove("mostrar");
+    esconderErro();
+  });
+
+})();
+</script>
+</body>
+</html>
