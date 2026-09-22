@@ -140,6 +140,12 @@
   input:focus, select:focus, textarea:focus{ outline:none; }
   .campo:focus-within{ border-color:var(--verde); }
 
+  #placa{
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    font-variant-numeric:tabular-nums;
+  }
+
   /* Data fixa (não editável) */
   .campo-estatico{
     display:flex;
@@ -393,11 +399,7 @@
       <div class="duas-colunas">
         <div class="campo">
           <label for="placa">Placa <span class="obrig">*</span></label>
-          <div class="select-wrap">
-            <select id="placa" name="placa" required disabled>
-              <option value="" disabled selected>Carregando lista...</option>
-            </select>
-          </div>
+          <input type="text" id="placa" name="placa" placeholder="AAA0000 ou AAA0A00" maxlength="8" autocapitalize="characters" autocomplete="off" required>
         </div>
         <div class="campo">
           <label>Data</label>
@@ -407,6 +409,7 @@
           </div>
         </div>
       </div>
+      <p class="ajuda-login" style="margin-top:-10px">Formatos aceitos: AAA0000, AAA-0000 ou AAA0A00 (Mercosul).</p>
 
       <div class="duas-colunas">
         <div class="campo">
@@ -490,7 +493,6 @@
   var QUALIDADE_JPEG = 0.72;
   var FECHAMENTO_AUTOMATICO_MS = 3500;
   var CHAVE_SESSAO = "cva_sessao_motorista_v1";
-  var CHAVE_CACHE_PLACAS = "cva_placas_cache_v1";
 
   // ---------- elementos: telas ----------
   var tituloTela = document.getElementById("tituloTela");
@@ -527,9 +529,9 @@
   var timerFechamentoModal = null;
 
   // ============================================================
-  // JSONP genérico: usado para o login e para carregar a lista de
-  // placas. Uma tag <script> não sofre bloqueio de CORS, diferente de
-  // um fetch() comum para um domínio diferente (script.google.com).
+  // JSONP genérico: usado para o login e para conferir a placa. Uma
+  // tag <script> não sofre bloqueio de CORS, diferente de um fetch()
+  // comum para um domínio diferente (script.google.com).
   // ============================================================
   function jsonp(urlBase, timeoutMs, aoReceber, aoFalhar){
     var nomeCallback = "cvaCallback_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
@@ -636,7 +638,6 @@
         if (dados && dados.ok && dados.nome){
           salvarSessao(dados.nome);
           mostrarTelaFormulario(dados.nome);
-          garantirListaPlacasCarregada();
         } else {
           mostrarErroLogin((dados && dados.error) || "Usuário ou senha inválidos.");
         }
@@ -656,53 +657,29 @@
   });
 
   // ============================================================
-  // Lista de placas (carregada só depois do login)
+  // Placa: o motorista digita, não escolhe de uma lista. O campo só
+  // aceita seguir para o envio se o formato bater com um padrão de
+  // placa brasileira, e a existência da placa é conferida no servidor
+  // (sem nunca baixar a lista completa de placas para o navegador).
   // ============================================================
-  var placasCarregadas = false;
+  campoPlaca.addEventListener("input", function(){
+    var posicao = campoPlaca.selectionStart;
+    campoPlaca.value = campoPlaca.value.toUpperCase();
+    try { campoPlaca.setSelectionRange(posicao, posicao); } catch(e){}
+  });
 
-  function preencherSelectPlaca(itens){
-    campoPlaca.innerHTML = "";
-    var placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.disabled = true;
-    placeholder.selected = true;
-    placeholder.textContent = "Selecione";
-    campoPlaca.appendChild(placeholder);
-    itens.forEach(function(item){
-      var opt = document.createElement("option");
-      opt.value = item;
-      opt.textContent = item;
-      campoPlaca.appendChild(opt);
-    });
-    campoPlaca.disabled = false;
+  function formatoPlacaValido(placa){
+    var valor = placa.trim().toUpperCase();
+    var padraoAntigo = /^[A-Z]{3}-?\d{4}$/;       // AAA0000 ou AAA-0000
+    var padraoMercosul = /^[A-Z]{3}\d[A-Z]\d{2}$/; // AAA0A00
+    return padraoAntigo.test(valor) || padraoMercosul.test(valor);
   }
 
-  function falhaAoCarregarPlacas(){
-    var cache = null;
-    try { cache = JSON.parse(localStorage.getItem(CHAVE_CACHE_PLACAS) || "null"); } catch(e){}
-    if (cache && cache.placas){
-      preencherSelectPlaca(cache.placas);
-      mostrarErro("Não foi possível atualizar a lista de placas agora — mostrando a última versão salva neste aparelho.");
-    } else {
-      preencherSelectPlaca([]);
-      campoPlaca.disabled = true;
-      mostrarErro("Não foi possível carregar a lista de placas. Verifique sua internet e recarregue a página.");
-    }
-  }
-
-  function garantirListaPlacasCarregada(){
-    if (placasCarregadas) return;
-    jsonp(SCRIPT_URL + "?acao=listas", 10000,
-      function(dados){
-        if (!dados || dados.ok === false){
-          falhaAoCarregarPlacas();
-          return;
-        }
-        placasCarregadas = true;
-        try { localStorage.setItem(CHAVE_CACHE_PLACAS, JSON.stringify(dados)); } catch(e){}
-        preencherSelectPlaca(dados.placas || []);
-      },
-      falhaAoCarregarPlacas
+  function validarPlacaNoServidor(placa, aoConcluir){
+    var url = SCRIPT_URL + "?acao=validarPlaca&placa=" + encodeURIComponent(placa);
+    jsonp(url, 10000,
+      function(dados){ aoConcluir(!!(dados && dados.ok)); },
+      function(){ aoConcluir(null); }
     );
   }
 
@@ -730,7 +707,6 @@
   var sessaoInicial = obterSessao();
   if (sessaoInicial){
     mostrarTelaFormulario(sessaoInicial.nome);
-    garantirListaPlacasCarregada();
   } else {
     mostrarTelaLogin();
   }
@@ -849,6 +825,43 @@
     if (ev.target === modalSucesso) fecharModalSucesso();
   });
 
+  function enviarSolicitacao(placa){
+    var sessao = obterSessao();
+    var tipoFinal = campoTipo.value === "Outro" && campoTipoOutro.value.trim()
+      ? "Outro – " + campoTipoOutro.value.trim()
+      : campoTipo.value;
+
+    var payload = {
+      motorista: sessao ? sessao.nome : "",
+      placa: placa,
+      km: document.getElementById("km").value,
+      tipo: tipoFinal,
+      data: formatarDataBR(dataAtualISO),
+      descricao: document.getElementById("descricao").value.trim(),
+      fotos: fotos.map(function(f){
+        return { filename: f.filename, mimeType: f.mimeType, base64: f.base64 };
+      })
+    };
+
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    })
+    .then(function(){
+      limparFormulario();
+      abrirModalSucesso();
+    })
+    .catch(function(){
+      mostrarErro("Não foi possível enviar agora. Verifique sua conexão com a internet e tente novamente.");
+    })
+    .finally(function(){
+      botaoEnviar.disabled = false;
+      botaoEnviar.classList.remove("carregando");
+    });
+  }
+
   form.addEventListener("submit", function(ev){
     ev.preventDefault();
     esconderErro();
@@ -868,41 +881,29 @@
       return;
     }
 
-    var tipoFinal = campoTipo.value === "Outro" && campoTipoOutro.value.trim()
-      ? "Outro – " + campoTipoOutro.value.trim()
-      : campoTipo.value;
-
-    var payload = {
-      motorista: sessao.nome,
-      placa: campoPlaca.value.trim(),
-      km: document.getElementById("km").value,
-      tipo: tipoFinal,
-      data: formatarDataBR(dataAtualISO),
-      descricao: document.getElementById("descricao").value.trim(),
-      fotos: fotos.map(function(f){
-        return { filename: f.filename, mimeType: f.mimeType, base64: f.base64 };
-      })
-    };
+    var placaDigitada = campoPlaca.value.trim().toUpperCase();
+    if (!formatoPlacaValido(placaDigitada)){
+      mostrarErro("Formato de placa inválido. Use AAA0000, AAA-0000 ou AAA0A00 (Mercosul).");
+      return;
+    }
 
     botaoEnviar.disabled = true;
     botaoEnviar.classList.add("carregando");
 
-    fetch(SCRIPT_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload)
-    })
-    .then(function(){
-      limparFormulario();
-      abrirModalSucesso();
-    })
-    .catch(function(){
-      mostrarErro("Não foi possível enviar agora. Verifique sua conexão com a internet e tente novamente.");
-    })
-    .finally(function(){
-      botaoEnviar.disabled = false;
-      botaoEnviar.classList.remove("carregando");
+    validarPlacaNoServidor(placaDigitada, function(valido){
+      if (valido === false){
+        botaoEnviar.disabled = false;
+        botaoEnviar.classList.remove("carregando");
+        mostrarErro("Placa não encontrada no cadastro. Confira com seu supervisor.");
+        return;
+      }
+      if (valido === null){
+        botaoEnviar.disabled = false;
+        botaoEnviar.classList.remove("carregando");
+        mostrarErro("Não foi possível verificar a placa agora. Verifique sua internet e tente novamente.");
+        return;
+      }
+      enviarSolicitacao(placaDigitada);
     });
   });
 
