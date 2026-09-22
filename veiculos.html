@@ -239,6 +239,7 @@
         <span>Histórico de manutenção</span>
         <div class="chips" id="chipsHistorico" style="margin-bottom:0"></div>
       </div>
+      <div class="chips" id="chipsClassificacao" style="margin-bottom:14px"></div>
 
       <div class="estado-carregando" id="carregandoFicha" style="display:none">Carregando histórico…</div>
       <div class="estado-erro" id="erroFicha" style="display:none">
@@ -315,6 +316,7 @@
   var cabecalhoFicha = document.getElementById("cabecalhoFicha");
   var kpisFicha = document.getElementById("kpisFicha");
   var chipsHistorico = document.getElementById("chipsHistorico");
+  var chipsClassificacao = document.getElementById("chipsClassificacao");
   var carregandoFicha = document.getElementById("carregandoFicha");
   var erroFicha = document.getElementById("erroFicha");
   var erroFichaTexto = document.getElementById("erroFichaTexto");
@@ -325,6 +327,7 @@
   var buscaVeiculo = "";
   var fichaAtual = null; // { veiculo, historico }
   var filtroHistorico = "todas";
+  var filtroClassificacao = "todas";
 
   // ============================================================
   // JSONP — mesmo padrão usado no painel de gestão: evita CORS e
@@ -620,10 +623,12 @@
     viewDiretorio.style.display = "none";
     viewFicha.style.display = "block";
     filtroHistorico = "todas";
+    filtroClassificacao = "todas";
     fichaAtual = null;
     cabecalhoFicha.innerHTML = "";
     kpisFicha.innerHTML = "";
     chipsHistorico.innerHTML = "";
+    chipsClassificacao.innerHTML = "";
     listaHistorico.innerHTML = "";
     carregarFicha(placa);
   }
@@ -719,8 +724,36 @@
     });
   }
 
+  function renderizarChipsClassificacao(historico){
+    var ordem = ["preventiva", "corretiva", "pneus", "funilaria", "outros"];
+    var contagens = { todas: historico.length };
+    ordem.forEach(function(chave){
+      contagens[chave] = historico.filter(function(it){ return it.classificacao === chave; }).length;
+    });
+    var defs = [{ chave: "todas", rotulo: "Todos os tipos · " + contagens.todas }];
+    ordem.forEach(function(chave){
+      var info = CLASSIF_INFO[chave];
+      defs.push({ chave: chave, rotulo: info.rotulo + " · " + contagens[chave] });
+    });
+    chipsClassificacao.innerHTML = "";
+    defs.forEach(function(def){
+      var chip = document.createElement("div");
+      chip.className = "chip" + (filtroClassificacao === def.chave ? " ativo" : "");
+      chip.textContent = def.rotulo;
+      chip.addEventListener("click", function(){
+        filtroClassificacao = def.chave;
+        renderizarFicha();
+      });
+      chipsClassificacao.appendChild(chip);
+    });
+  }
+
   function renderizarListaHistorico(historico){
-    var filtrados = filtroHistorico === "todas" ? historico : historico.filter(function(it){ return it.status === filtroHistorico; });
+    var filtrados = historico.filter(function(it){
+      var passaStatus = filtroHistorico === "todas" || it.status === filtroHistorico;
+      var passaClassificacao = filtroClassificacao === "todas" || it.classificacao === filtroClassificacao;
+      return passaStatus && passaClassificacao;
+    });
     listaHistorico.innerHTML = "";
 
     if (filtrados.length === 0){
@@ -816,6 +849,7 @@
     renderizarCabecalhoFicha(fichaAtual.veiculo);
     renderizarKpisFicha(fichaAtual.veiculo);
     renderizarChipsHistorico(fichaAtual.historico);
+    renderizarChipsClassificacao(fichaAtual.historico);
     renderizarListaHistorico(fichaAtual.historico);
   }
 
