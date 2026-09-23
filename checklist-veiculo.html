@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Checklist Semanal de Veículo – Cheiro Verde Ambiental</title>
-<meta name="description" content="Checklist semanal de vistoria do veículo, com fotos e assinatura.">
+<title>Checklist Veículos – Cheiro Verde Ambiental</title>
+<meta name="description" content="Checklist de vistoria do veículo, com fotos e assinatura.">
 <meta name="theme-color" content="#1F7A4D">
 
 <style>
@@ -153,6 +153,7 @@
   }
   .resposta-btn.selecionado{ background:var(--verde-claro); border-color:var(--verde); color:var(--verde-escuro); }
   .resposta-btn.selecionado.problema{ background:var(--erro-claro); border-color:var(--erro); color:var(--erro); }
+  .resposta-toggle.tres-opcoes .resposta-btn{ font-size:12.5px; padding:10px 4px; }
   .pergunta-foto-wrap{ margin-top:12px; }
 
   /* Fotos: slots rotulados (fotos gerais e foto de item com problema) */
@@ -173,7 +174,36 @@
     width:100%; padding:10px; border-radius:8px; border:none;
     background:var(--card); color:var(--verde-escuro); font-weight:700; font-size:12.5px; cursor:pointer;
   }
+  .foto-slot-remover{
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    width:100%; padding:9px; border-radius:8px; border:none;
+    background:var(--erro-claro); color:var(--erro); font-weight:700; font-size:12.5px; cursor:pointer;
+  }
   input[type=file]{ display:none; }
+
+  /* Grupo de até 3 fotos (fotos de item com problema / foto obrigatória) */
+  .foto-obrigatoria-aviso{ font-size:12px; font-weight:700; color:var(--erro); margin:2px 0 8px; }
+  .grupo-fotos{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr));
+    gap:10px;
+  }
+  .grupo-fotos-adicionar{
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    border:1.5px dashed var(--borda); border-radius:12px; padding:10px;
+    background:var(--verde-claro); color:var(--verde-escuro);
+    font-weight:700; font-size:12.5px; cursor:pointer; min-height:96px;
+  }
+  .grupo-fotos-item{
+    position:relative; border-radius:12px; overflow:hidden; background:var(--verde-claro);
+    border:1.5px solid var(--borda);
+  }
+  .grupo-fotos-item img{ width:100%; aspect-ratio:1; object-fit:cover; display:block; }
+  .grupo-fotos-item .remover-foto-x{
+    position:absolute; top:6px; right:6px; width:26px; height:26px; border-radius:50%;
+    border:none; background:rgba(20,20,20,.62); color:#fff; font-size:15px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; line-height:1;
+  }
+  .grupo-fotos-contador{ font-size:12px; color:var(--texto-suave); margin-top:6px; }
 
   /* Assinatura */
   .assinatura-mensagem{
@@ -317,7 +347,7 @@
     <form id="formularioChecklist" novalidate>
 
       <div class="titulo-secao">Perguntas da vistoria</div>
-      <p class="subtitulo-secao">Responda Sim ou Não para cada item. Se algum item indicar problema, uma foto dele será pedida.</p>
+      <p class="subtitulo-secao">Responda Sim ou Não para cada Item, conforme a pergunta.</p>
       <div id="perguntasLista"></div>
 
       <div class="campo">
@@ -386,7 +416,7 @@
   var ITENS_FOTOS_GERAIS = [
     "Frente", "Trás", "Lateral frente esquerda", "Lateral frente direita",
     "Lateral traseira direita", "Lateral traseira esquerda", "Parabrisa",
-    "Interna (geral)", "Bancos", "Estepe", "Kit de segurança"
+    "Interna (geral)", "Bancos", "Estepe", "Equipamentos de Emergência (Triângulo, Macaco)"
   ];
 
   // ---------- elementos: telas ----------
@@ -433,7 +463,7 @@
 
   var placaAtual = "";
   var perguntasAtuais = [];
-  var respostasEstado = {}; // chave -> { resposta, problema, slotFoto }
+  var respostasEstado = {}; // chave -> { resposta, problema, grupoFoto }
   var slotsFotosGerais = []; // [{ rotulo, slot }]
   var mensagemAssinaturaAtual = "";
   var timerFechamentoModal = null;
@@ -510,7 +540,7 @@
     telaLogin.style.display = "none";
     telaPlaca.style.display = "";
     telaChecklist.style.display = "none";
-    tituloTela.textContent = "Checklist semanal";
+    tituloTela.textContent = "CHECKLIST VEÍCULOS";
     subtituloTela.textContent = "Informe a placa do veículo que você vai vistoriar.";
     campoPlacaChecklist.value = "";
     esconderErroPlaca();
@@ -520,7 +550,7 @@
     telaLogin.style.display = "none";
     telaPlaca.style.display = "none";
     telaChecklist.style.display = "";
-    tituloTela.textContent = "Checklist semanal";
+    tituloTela.textContent = "CHECKLIST VEÍCULOS";
     subtituloTela.textContent = "Preencha a vistoria, anexe as fotos e assine ao final.";
     var sessao = obterSessao();
     nomeMotoristaChecklist.textContent = (sessao ? sessao.nome : "–") + " · " + placaAtual;
@@ -721,6 +751,15 @@
       trocar.textContent = "Trocar foto";
       trocar.addEventListener("click", function(){ inputFile.click(); });
       area.appendChild(trocar);
+      var remover = document.createElement("button");
+      remover.type = "button";
+      remover.className = "foto-slot-remover";
+      remover.textContent = "Remover foto";
+      remover.addEventListener("click", function(){
+        estado.foto = null;
+        renderizarVazio();
+      });
+      area.appendChild(remover);
     }
 
     inputFile.addEventListener("change", function(){
@@ -742,18 +781,96 @@
     };
   }
 
+  // Grupo de fotos com limite (usado pra foto de um item que indicou
+  // problema, ou de um item com foto obrigatória — até MAX_FOTOS
+  // fotos, cada uma removível individualmente).
+  var MAX_FOTOS_POR_ITEM = 3;
+  function criarGrupoFotos(rotuloBase){
+    var estado = { fotos: [] }; // cada item: resultado de comprimirImagem
+
+    var wrap = document.createElement("div");
+
+    var grid = document.createElement("div");
+    grid.className = "grupo-fotos";
+    wrap.appendChild(grid);
+
+    var contador = document.createElement("div");
+    contador.className = "grupo-fotos-contador";
+    wrap.appendChild(contador);
+
+    var inputFile = document.createElement("input");
+    inputFile.type = "file";
+    inputFile.accept = "image/*";
+    inputFile.setAttribute("capture", "environment");
+    wrap.appendChild(inputFile);
+
+    function renderizar(){
+      grid.innerHTML = "";
+      estado.fotos.forEach(function(foto, indice){
+        var item = document.createElement("div");
+        item.className = "grupo-fotos-item";
+        var img = document.createElement("img");
+        img.src = foto.previewUrl;
+        img.alt = rotuloBase;
+        item.appendChild(img);
+        var remover = document.createElement("button");
+        remover.type = "button";
+        remover.className = "remover-foto-x";
+        remover.setAttribute("aria-label", "Remover foto");
+        remover.textContent = "×";
+        remover.addEventListener("click", function(){
+          estado.fotos.splice(indice, 1);
+          renderizar();
+        });
+        item.appendChild(remover);
+        grid.appendChild(item);
+      });
+
+      if (estado.fotos.length < MAX_FOTOS_POR_ITEM){
+        var adicionar = document.createElement("button");
+        adicionar.type = "button";
+        adicionar.className = "grupo-fotos-adicionar";
+        adicionar.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 8a2 2 0 0 1 2-2h1.2a1 1 0 0 0 .86-.49l.7-1.18A1 1 0 0 1 9.62 4h4.76a1 1 0 0 1 .86.33l.7 1.18A1 1 0 0 0 16.8 6H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="13" r="3.2" stroke="currentColor" stroke-width="1.6"/></svg> Foto';
+        adicionar.addEventListener("click", function(){ inputFile.click(); });
+        grid.appendChild(adicionar);
+      }
+
+      contador.textContent = estado.fotos.length + " de " + MAX_FOTOS_POR_ITEM + " foto(s) adicionada(s).";
+    }
+
+    inputFile.addEventListener("change", function(){
+      var arquivo = inputFile.files && inputFile.files[0];
+      inputFile.value = "";
+      if (!arquivo || !/^image\//.test(arquivo.type)) return;
+      if (estado.fotos.length >= MAX_FOTOS_POR_ITEM) return;
+      comprimirImagem(arquivo, function(resultado){
+        estado.fotos.push(resultado);
+        renderizar();
+      });
+    });
+
+    renderizar();
+
+    return {
+      elemento: wrap,
+      temFoto: function(){ return estado.fotos.length > 0; },
+      obterFotos: function(){ return estado.fotos; }
+    };
+  }
+
   // ============================================================
   // Monta a tela do checklist a partir das perguntas recebidas do
   // servidor (validarPlacaChecklist já devolve a lista atual).
   // ============================================================
   function iniciarChecklist(perguntas, mensagemAssinatura){
     perguntasAtuais = perguntas;
-    mensagemAssinaturaAtual = mensagemAssinatura || "Declaro que as informações e fotos registradas neste checklist são verdadeiras.";
+    mensagemAssinaturaAtual = mensagemAssinatura ||
+      "Declaro que as informações e fotos registradas neste checklist são verdadeiras e condizentes com o real estado do veículo no momento da vistoria.";
     respostasEstado = {};
 
     perguntasLista.innerHTML = "";
     perguntas.forEach(function(p){
-      respostasEstado[p.chave] = { resposta: null, problema: false, slotFoto: null };
+      respostasEstado[p.chave] = { resposta: null, problema: false, grupoFoto: null };
 
       var card = document.createElement("div");
       card.className = "campo pergunta-card";
@@ -762,15 +879,27 @@
       rotulo.textContent = p.pergunta;
       card.appendChild(rotulo);
 
+      if (p.fotoObrigatoria){
+        var aviso = document.createElement("div");
+        aviso.className = "foto-obrigatoria-aviso";
+        aviso.textContent = "* Obrigatório adicionar foto";
+        card.appendChild(aviso);
+      }
+
+      var opcoes = (p.opcoes && p.opcoes.length) ? p.opcoes : [
+        { valor: "sim", rotulo: "Sim" },
+        { valor: "nao", rotulo: "Não" }
+      ];
+
       var toggle = document.createElement("div");
-      toggle.className = "resposta-toggle";
-      ["sim", "nao"].forEach(function(valor){
+      toggle.className = "resposta-toggle" + (opcoes.length > 2 ? " tres-opcoes" : "");
+      opcoes.forEach(function(opcao){
         var btn = document.createElement("button");
         btn.type = "button";
         btn.className = "resposta-btn";
-        btn.dataset.valor = valor;
-        btn.textContent = valor === "sim" ? "Sim" : "Não";
-        btn.addEventListener("click", function(){ selecionarResposta(p, valor, card); });
+        btn.dataset.valor = opcao.valor;
+        btn.textContent = opcao.rotulo;
+        btn.addEventListener("click", function(){ selecionarResposta(p, opcao.valor, card); });
         toggle.appendChild(btn);
       });
       card.appendChild(toggle);
@@ -797,6 +926,13 @@
     requestAnimationFrame(prepararCanvas);
   }
 
+  // Uma pergunta pede foto quando a resposta escolhida é a que indica
+  // problema, OU quando a pergunta exige foto sempre (fotoObrigatoria),
+  // não importa a resposta.
+  function perguntaPedeFoto(p, ehProblema){
+    return ehProblema || !!p.fotoObrigatoria;
+  }
+
   function selecionarResposta(p, valor, card){
     respostasEstado[p.chave].resposta = valor;
     var ehProblema = valor === p.respostaProblema;
@@ -810,13 +946,13 @@
     });
 
     var fotoWrap = card.querySelector(".pergunta-foto-wrap");
-    if (ehProblema){
+    if (perguntaPedeFoto(p, ehProblema)){
       fotoWrap.style.display = "block";
-      if (!respostasEstado[p.chave].slotFoto){
-        var slot = criarSlotFoto("Foto do item: " + p.pergunta);
-        respostasEstado[p.chave].slotFoto = slot;
+      if (!respostasEstado[p.chave].grupoFoto){
+        var grupo = criarGrupoFotos("Foto do item: " + p.pergunta);
+        respostasEstado[p.chave].grupoFoto = grupo;
         fotoWrap.innerHTML = "";
-        fotoWrap.appendChild(slot.elemento);
+        fotoWrap.appendChild(grupo.elemento);
       }
     } else {
       fotoWrap.style.display = "none";
@@ -944,15 +1080,17 @@
     });
     perguntasAtuais.forEach(function(p){
       var estado = respostasEstado[p.chave];
-      if (estado.problema && estado.slotFoto && estado.slotFoto.temFoto()){
-        var foto = estado.slotFoto.obterFoto();
-        fotosPayload.push({
-          rotulo: p.pergunta,
-          tipo: "problema",
-          chave: p.chave,
-          filename: foto.filename,
-          mimeType: foto.mimeType,
-          base64: foto.base64
+      if (estado.grupoFoto && estado.grupoFoto.temFoto()){
+        var fotos = estado.grupoFoto.obterFotos();
+        fotos.forEach(function(foto, indice){
+          fotosPayload.push({
+            rotulo: p.pergunta + (fotos.length > 1 ? " (foto " + (indice + 1) + ")" : ""),
+            tipo: "problema",
+            chave: p.chave,
+            filename: foto.filename,
+            mimeType: foto.mimeType,
+            base64: foto.base64
+          });
         });
       }
     });
@@ -999,12 +1137,12 @@
       return;
     }
 
-    var problemaSemFoto = perguntasAtuais.find(function(p){
+    var fotoFaltandoNaPergunta = perguntasAtuais.find(function(p){
       var estado = respostasEstado[p.chave];
-      return estado.problema && (!estado.slotFoto || !estado.slotFoto.temFoto());
+      return perguntaPedeFoto(p, estado.problema) && (!estado.grupoFoto || !estado.grupoFoto.temFoto());
     });
-    if (problemaSemFoto){
-      mostrarErroChecklist("Adicione a foto do item que indicou problema: \"" + problemaSemFoto.pergunta + "\".");
+    if (fotoFaltandoNaPergunta){
+      mostrarErroChecklist("Adicione pelo menos 1 foto do item: \"" + fotoFaltandoNaPergunta.pergunta + "\".");
       return;
     }
 
