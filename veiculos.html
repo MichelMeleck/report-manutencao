@@ -163,6 +163,8 @@
   .resposta-item.problema{ background:var(--erro-claro); }
   .resposta-item .marca-resposta{ flex-shrink:0; font-weight:800; color:var(--verde-escuro); }
   .resposta-item.problema .marca-resposta{ color:var(--erro); }
+  .resposta-item .descricao-resposta{ display:block; margin-top:4px; font-weight:400; font-style:italic; color:var(--texto-suave); }
+  .resposta-item.problema .descricao-resposta{ color:var(--erro); }
   .subtitulo-checklist{ font-size:12px; font-weight:700; color:var(--texto-suave); text-transform:uppercase; letter-spacing:.03em; margin:14px 0 8px; }
   .fotos-checklist-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(84px,1fr)); gap:8px; }
   .foto-checklist-item{ position:relative; }
@@ -791,9 +793,12 @@
           item.className = "resposta-item" + (r.problema ? " problema" : "");
           var textoResposta = r.resposta === "sim" ? "Sim"
             : (r.resposta === "nao_possui" ? "Não possui" : "Não");
+          var descricaoHtml = (r.descricao && r.descricao.trim())
+            ? '<span class="descricao-resposta">' + escaparHtml(r.descricao.trim()) + '</span>'
+            : "";
           item.innerHTML =
             '<span class="marca-resposta">' + textoResposta + '</span>' +
-            '<span>' + escaparHtml(r.pergunta || "") + '</span>';
+            '<span>' + escaparHtml(r.pergunta || "") + descricaoHtml + '</span>';
           respostasGrid.appendChild(item);
         });
         cartao.appendChild(respostasGrid);
