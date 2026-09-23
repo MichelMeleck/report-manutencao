@@ -789,8 +789,10 @@
         checklist.respostas.forEach(function(r){
           var item = document.createElement("div");
           item.className = "resposta-item" + (r.problema ? " problema" : "");
+          var textoResposta = r.resposta === "sim" ? "Sim"
+            : (r.resposta === "nao_possui" ? "Não possui" : "Não");
           item.innerHTML =
-            '<span class="marca-resposta">' + (r.resposta === "sim" ? "Sim" : "Não") + '</span>' +
+            '<span class="marca-resposta">' + textoResposta + '</span>' +
             '<span>' + escaparHtml(r.pergunta || "") + '</span>';
           respostasGrid.appendChild(item);
         });
