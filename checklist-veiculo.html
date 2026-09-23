@@ -156,6 +156,15 @@
   .resposta-toggle.tres-opcoes .resposta-btn{ font-size:12.5px; padding:10px 4px; }
   .pergunta-foto-wrap{ margin-top:12px; }
 
+  .pergunta-descricao-wrap{ margin-top:12px; }
+  .descricao-rotulo{ font-size:12.5px; font-weight:700; color:var(--texto); margin-bottom:6px; }
+  .descricao-textarea{
+    width:100%; font-size:14.5px; font-family:inherit; color:var(--texto);
+    background:var(--bg); border:1.5px solid var(--borda); border-radius:10px;
+    padding:10px 12px; resize:vertical; min-height:64px; outline:none;
+  }
+  .descricao-textarea:focus{ border-color:var(--verde); }
+
   /* Fotos: slots rotulados (fotos gerais e foto de item com problema) */
   .fotos-gerais-grid{
     display:grid; grid-template-columns:repeat(auto-fill, minmax(136px,1fr));
@@ -870,7 +879,7 @@
 
     perguntasLista.innerHTML = "";
     perguntas.forEach(function(p){
-      respostasEstado[p.chave] = { resposta: null, problema: false, grupoFoto: null };
+      respostasEstado[p.chave] = { resposta: null, problema: false, grupoFoto: null, descricao: "" };
 
       var card = document.createElement("div");
       card.className = "campo pergunta-card";
@@ -903,6 +912,23 @@
         toggle.appendChild(btn);
       });
       card.appendChild(toggle);
+
+      var descricaoWrap = document.createElement("div");
+      descricaoWrap.className = "pergunta-descricao-wrap";
+      descricaoWrap.style.display = "none";
+      var descricaoRotulo = document.createElement("div");
+      descricaoRotulo.className = "descricao-rotulo";
+      descricaoRotulo.textContent = "Descrição do problema";
+      descricaoWrap.appendChild(descricaoRotulo);
+      var descricaoTextarea = document.createElement("textarea");
+      descricaoTextarea.className = "descricao-textarea";
+      descricaoTextarea.rows = 3;
+      descricaoTextarea.placeholder = "Descreva o que está acontecendo...";
+      descricaoTextarea.addEventListener("input", function(){
+        respostasEstado[p.chave].descricao = descricaoTextarea.value;
+      });
+      descricaoWrap.appendChild(descricaoTextarea);
+      card.appendChild(descricaoWrap);
 
       var fotoWrap = document.createElement("div");
       fotoWrap.className = "pergunta-foto-wrap";
@@ -956,6 +982,19 @@
       }
     } else {
       fotoWrap.style.display = "none";
+    }
+
+    // Campo de descrição só aparece quando a resposta escolhida é a
+    // resposta-problema (não aparece no caso de foto obrigatória com
+    // resposta esperada, como a pergunta 2).
+    var descricaoWrap = card.querySelector(".pergunta-descricao-wrap");
+    if (ehProblema){
+      descricaoWrap.style.display = "block";
+    } else {
+      descricaoWrap.style.display = "none";
+      respostasEstado[p.chave].descricao = "";
+      var descricaoTextareaEl = descricaoWrap.querySelector(".descricao-textarea");
+      if (descricaoTextareaEl) descricaoTextareaEl.value = "";
     }
   }
 
@@ -1062,7 +1101,8 @@
         chave: p.chave,
         pergunta: p.pergunta,
         resposta: estado.resposta,
-        problema: estado.problema
+        problema: estado.problema,
+        descricao: estado.descricao || ""
       };
     });
 
@@ -1134,6 +1174,15 @@
     var perguntaSemResposta = perguntasAtuais.find(function(p){ return !respostasEstado[p.chave].resposta; });
     if (perguntaSemResposta){
       mostrarErroChecklist("Responda todas as perguntas do checklist (faltou: \"" + perguntaSemResposta.pergunta + "\").");
+      return;
+    }
+
+    var descricaoFaltando = perguntasAtuais.find(function(p){
+      var estado = respostasEstado[p.chave];
+      return estado.problema && (!estado.descricao || !estado.descricao.trim());
+    });
+    if (descricaoFaltando){
+      mostrarErroChecklist("Descreva o problema encontrado no item: \"" + descricaoFaltando.pergunta + "\".");
       return;
     }
 
