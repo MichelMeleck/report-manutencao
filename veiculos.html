@@ -189,6 +189,32 @@
     .topo h1{ display:none; }
     .cabecalho-ficha{ flex-direction:column; align-items:flex-start; }
   }
+
+  /* ---------- detalhe da manutenção + pedido de compra vinculado ---------- */
+  .cartao-historico.clicavel{ cursor:pointer; transition:border-color .15s, box-shadow .15s; }
+  .cartao-historico.clicavel:hover{ border-color:var(--verde); box-shadow:var(--sombra); }
+  .cartao-historico.clicavel:focus-visible{ outline:2px solid var(--verde); outline-offset:2px; }
+  .pedidos-compra{ margin-top:12px; display:flex; flex-direction:column; gap:6px; }
+  .link-pedido{ display:inline-flex; align-items:center; gap:8px; align-self:flex-start; font-size:13px; font-weight:700; color:var(--verde); background:var(--verde-claro); border:1px solid transparent; border-radius:10px; padding:7px 12px; }
+  .link-pedido:hover{ border-color:var(--verde); }
+  .link-pedido svg{ width:15px; height:15px; flex:none; }
+  .link-pedido .sub{ font-weight:500; color:var(--texto-suave); }
+  .modal-manut{ display:none; position:fixed; inset:0; background:rgba(15,20,17,.55); align-items:flex-start; justify-content:center; padding:24px 16px; z-index:1000; overflow-y:auto; }
+  .modal-manut.mostrar{ display:flex; }
+  .modal-manut .card-m{ background:var(--card); border-radius:20px; padding:24px 22px; max-width:480px; width:100%; box-shadow:0 12px 32px rgba(0,0,0,.25); margin-top:20px; animation:aparecerM .18s ease-out; }
+  @keyframes aparecerM{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
+  .modal-manut .topo-m{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px; }
+  .modal-manut h2{ margin:0 0 6px; font-size:19px; }
+  .modal-manut .badge-m{ font-size:12px; font-weight:700; padding:4px 10px; border-radius:20px; display:inline-block; }
+  .modal-manut .fechar-m{ background:none; border:none; color:var(--texto-suave); font-size:20px; line-height:1; cursor:pointer; padding:4px; }
+  .modal-manut .linha-m{ display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--borda); font-size:13.5px; }
+  .modal-manut .linha-m:last-child{ border-bottom:none; }
+  .modal-manut .linha-m .r{ color:var(--texto-suave); flex:0 0 120px; font-weight:600; }
+  .modal-manut .linha-m .v{ flex:1; white-space:pre-line; word-break:break-word; }
+  .modal-manut .sec-m{ margin:16px 0 8px; font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--texto-suave); }
+  .modal-manut .fotos-m{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .modal-manut .fotos-m a{ display:block; aspect-ratio:1; border-radius:10px; overflow:hidden; background:var(--verde-claro); }
+  .modal-manut .fotos-m img{ width:100%; height:100%; object-fit:cover; display:block; }
 </style>
 </head>
 <body>
@@ -321,6 +347,9 @@
   // é o mesmo backend, só com duas ações novas.
   // ============================================================
   var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyJQQTkipnt-HrdxRn93ElTeUEyUqOaduDVGIWE8U3Qkm9OaK22cHwgmn5Q8uNZ2-b9-A/exec";
+  // Sistema de Pedidos de Compra: devolve os pedidos aprovados vinculados às manutenções da placa
+  var COMPRAS_URL = "https://script.google.com/macros/s/AKfycbwByaWimsDi3T-4wiw7FPOFh1MqikQHSFl27uVngA7KmLbiBD2yZHyhIaDKVxoDMY2jPQ/exec";
+  var pedidosCompra = {};   // "id:<idManutencao>" ou "dh:<dd/mm/aaaa hh:mm>" -> [pedidos]
 
   // Mesma chave usada em painel-manutencao.html — assim, quem loga num
   // dos dois sites de gestão já entra direto no outro também, sem
@@ -665,6 +694,100 @@
     return card;
   }
 
+  // ---------- pedidos de compra vinculados (sistema de Pedidos de Compra) ----------
+  function chaveDataHora(s){ return String(s || "").trim().slice(0, 16); }
+  function pedidosDoItem(item){
+    var lista = (item.id && pedidosCompra["id:" + item.id]) || [];
+    if (!lista.length) lista = pedidosCompra["dh:" + chaveDataHora(item.dataHoraEnvio)] || [];
+    return lista;
+  }
+  function carregarPedidosCompra(){
+    if (!fichaAtual || !fichaAtual.veiculo) return;
+    var hist = fichaAtual.historico || [];
+    var ids = [], chaves = [];
+    hist.forEach(function(it){ if (it.id) ids.push(it.id); if (it.dataHoraEnvio) chaves.push(it.dataHoraEnvio); });
+    if (!ids.length && !chaves.length) return;
+    var placaPedida = fichaAtual.veiculo.placa;
+    var url = COMPRAS_URL + "?acao=pedidosManutencao" +
+      "&placa=" + encodeURIComponent(placaPedida) +
+      "&ids=" + encodeURIComponent(ids.join("|")) +
+      "&chaves=" + encodeURIComponent(chaves.join("|"));
+    jsonp(url, 15000, function(dados){
+      if (!fichaAtual || !fichaAtual.veiculo || fichaAtual.veiculo.placa !== placaPedida) return;
+      if (!dados || !dados.ok || !dados.pedidos || !dados.pedidos.length) return;
+      var mapa = {};
+      function add(k, p){ (mapa[k] = mapa[k] || []).push(p); }
+      dados.pedidos.forEach(function(p){
+        if (p.manutencaoId) add("id:" + p.manutencaoId, p);
+        if (p.dataHoraManut) add("dh:" + chaveDataHora(p.dataHoraManut), p);
+      });
+      pedidosCompra = mapa;
+      renderizarFicha();
+    }, function(){ /* sem conexão com o sistema de compras: a ficha continua funcionando */ });
+  }
+  var ICONE_PDF = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+  function linkPedido(pd){
+    var a = document.createElement("a");
+    a.className = "link-pedido";
+    a.href = pd.url || "#";
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.innerHTML = ICONE_PDF + "Pedido de Compra Nº " + escaparHtml(pd.numeroPdf) +
+      ' <span class="sub">· aprovado' + (pd.aprovadoEm ? " em " + escaparHtml(pd.aprovadoEm) : "") + (pd.comprado ? " · comprado" : "") + "</span>";
+    a.addEventListener("click", function(ev){ ev.stopPropagation(); });
+    return a;
+  }
+
+  // ---------- detalhe de uma manutenção (card aberto ao clicar) ----------
+  var modalManut = null;
+  function fecharDetalheManutencao(){ if (modalManut) modalManut.classList.remove("mostrar"); document.removeEventListener("keydown", escModalManut); }
+  function escModalManut(ev){ if (ev.key === "Escape") fecharDetalheManutencao(); }
+  function abrirDetalheManutencao(item){
+    if (!modalManut){
+      modalManut = document.createElement("div");
+      modalManut.className = "modal-manut";
+      modalManut.addEventListener("click", function(ev){ if (ev.target === modalManut || ev.target.closest(".fechar-m")) fecharDetalheManutencao(); });
+      document.body.appendChild(modalManut);
+    }
+    var st = STATUS_HIST_INFO[item.status] || STATUS_HIST_INFO.novo;
+    var classif = item.classificacao ? CLASSIF_INFO[item.classificacao] : null;
+    var placa = fichaAtual && fichaAtual.veiculo ? fichaAtual.veiculo.placa : "";
+    function linha(rotulo, valor){ return valor || valor === 0 ? '<div class="linha-m"><span class="r">' + rotulo + '</span><span class="v">' + escaparHtml(valor) + "</span></div>" : ""; }
+    var fotos = item.fotos || item.fotosIds || item.fotosIDs || [];
+    if (typeof fotos === "string") fotos = fotos.split(/[,;\s]+/).filter(Boolean);
+    var html = '<div class="card-m" role="dialog" aria-modal="true">' +
+      '<div class="topo-m"><div><h2>Manutenção · ' + escaparHtml(placa) + '</h2>' +
+      '<span class="badge-m" style="background:' + st.bg + ";color:" + st.texto + '">' + st.rotulo + "</span></div>" +
+      '<button type="button" class="fechar-m" aria-label="Fechar">✕</button></div>' +
+      linha("Enviado em", item.dataHoraEnvio) +
+      linha("Motorista", item.motorista) +
+      linha("Quilometragem", item.km ? item.km + " km" : "") +
+      linha("Tipo informado", item.tipo) +
+      linha("Classificação", classif ? classif.rotulo + (item.classificacao === "outros" && item.motivoOutro ? " – " + item.motivoOutro : "") : "") +
+      linha("Descrição", item.descricao || item.problema || "(sem descrição)") +
+      linha("Prestador", item.prestador) +
+      linha("Prazo estimado", item.prazoDataLimite) +
+      linha("Atualizado por", item.atualizadoPor) +
+      linha("Última atualização", item.ultimaAtualizacao) +
+      linha("Motivo do cancelamento", item.status === "cancelado" ? item.motivoRejeicao : "");
+    var pedidos = pedidosDoItem(item);
+    html += '<div class="sec-m">Pedidos de compra</div>';
+    html += pedidos.length ? '<div class="pedidos-compra" id="pedidosModalManut"></div>' : '<div style="font-size:13px;color:var(--texto-suave)">Nenhum pedido de compra aprovado vinculado a esta manutenção.</div>';
+    if (fotos.length){
+      html += '<div class="sec-m">Fotos</div><div class="fotos-m">' + fotos.map(function(id){
+        id = String(id).trim();
+        return '<a href="https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view" target="_blank" rel="noopener"><img alt="Foto" loading="lazy" src="https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w400"></a>';
+      }).join("") + "</div>";
+    }
+    html += "</div>";
+    modalManut.innerHTML = html;
+    var box = modalManut.querySelector("#pedidosModalManut");
+    if (box) pedidos.forEach(function(pd){ box.appendChild(linkPedido(pd)); });
+    modalManut.classList.add("mostrar");
+    document.addEventListener("keydown", escModalManut);
+    var b = modalManut.querySelector(".fechar-m"); if (b) b.focus();
+  }
+
   function escaparHtml(texto){
     var div = document.createElement("div");
     div.textContent = String(texto == null ? "" : texto);
@@ -901,7 +1024,9 @@
         carregandoFicha.style.display = "none";
         if (dados && dados.ok){
           fichaAtual = { veiculo: dados.veiculo, historico: dados.historico || [] };
+          pedidosCompra = {};
           renderizarFicha();
+          carregarPedidosCompra();
         } else {
           erroFichaTexto.textContent = (dados && dados.error) || "Não foi possível carregar essa ficha.";
           erroFicha.style.display = "block";
@@ -1043,7 +1168,14 @@
       linha.appendChild(colNo);
 
       var cartao = document.createElement("div");
-      cartao.className = "cartao-historico";
+      cartao.className = "cartao-historico clicavel";
+      cartao.setAttribute("role", "button");
+      cartao.setAttribute("tabindex", "0");
+      cartao.title = "Ver detalhes da manutenção";
+      (function(it){
+        cartao.addEventListener("click", function(ev){ if (ev.target.closest("a")) return; abrirDetalheManutencao(it); });
+        cartao.addEventListener("keydown", function(ev){ if (ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); abrirDetalheManutencao(it); } });
+      })(item);
 
       var topoLinha = document.createElement("div");
       topoLinha.style.cssText = "display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;";
@@ -1086,6 +1218,14 @@
         motivoCancel.style.cssText = "margin-top:10px;background:var(--erro-claro);border-radius:10px;padding:10px 14px;font-size:13px;color:#8a352a;";
         motivoCancel.textContent = "Motivo do cancelamento: " + item.motivoRejeicao;
         cartao.appendChild(motivoCancel);
+      }
+
+      var pedidos = pedidosDoItem(item);
+      if (pedidos.length){
+        var boxPedidos = document.createElement("div");
+        boxPedidos.className = "pedidos-compra";
+        pedidos.forEach(function(pd){ boxPedidos.appendChild(linkPedido(pd)); });
+        cartao.appendChild(boxPedidos);
       }
 
       linha.appendChild(cartao);
