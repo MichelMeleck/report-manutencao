@@ -514,9 +514,33 @@
   }
   .toast.mostrar{ opacity:1; transform:translateX(-50%) translateY(0); }
 
+  /* ---------- busca por placa/motorista ---------- */
+  .faixa-topo-quadro{ padding:16px 18px 0; display:flex; flex-direction:column; gap:10px; }
+  .campo-busca{ display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--borda); border-radius:12px; padding:11px 14px; }
+  .campo-busca input{ flex-grow:1; border:none; background:transparent; font-size:14.5px; font-family:inherit; color:var(--texto); outline:none; }
+
+  /* ---------- resumo do dia ---------- */
+  .faixa-resumo{ display:flex; gap:10px; flex-wrap:wrap; }
+  .resumo-pill{ font-size:12.5px; font-weight:700; padding:6px 12px; border-radius:20px; }
+  .resumo-pill.vermelho{ background:var(--erro-claro); color:var(--erro); }
+  .resumo-pill.amarelo{ background:var(--amarelo-claro); color:var(--amarelo); }
+
+  /* ---------- foto "carregando" (esqueleto) até a miniatura do Drive chegar ---------- */
+  @keyframes pulsarFoto{ 0%,100%{ opacity:.55; } 50%{ opacity:.2; } }
+  .fotos-modal-grid a.foto-carregando{ animation:pulsarFoto 1.1s ease-in-out infinite; }
+  .fotos-modal-grid img{ transition:opacity .2s ease-out; }
+  .fotos-modal-grid img[data-carregando="1"]{ opacity:0; }
+
+  /* ---------- botão "voltar" dentro da triagem ---------- */
+  .botao-voltar-triagem{
+    flex:0 0 100%; background:none; border:1.5px dashed var(--borda); color:var(--texto-suave);
+    text-align:left; margin-bottom:2px;
+  }
+
   @media (prefers-reduced-motion: reduce){
     .spinner, .botao-icone.girando svg{ animation:none; }
     .modal-card{ animation:none; }
+    .fotos-modal-grid a.foto-carregando{ animation:none; }
   }
 </style>
 </head>
@@ -584,6 +608,14 @@
     </div>
   </div>
 
+  <div class="faixa-topo-quadro">
+    <div class="campo-busca">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="7" stroke="#5B6B62" stroke-width="1.8"/><path d="M20 20l-3.5-3.5" stroke="#5B6B62" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <input type="text" id="campoBuscaPainel" placeholder="Buscar por placa ou motorista">
+    </div>
+    <div class="faixa-resumo" id="faixaResumoDia" style="display:none"></div>
+  </div>
+
   <div class="quadro-wrap">
     <div id="carregandoQuadro" class="carregando-quadro">Carregando solicitações…</div>
     <div id="erroQuadro" class="erro-quadro" style="display:none"></div>
@@ -629,6 +661,7 @@
       <div class="mover-botoes" id="triagemBotoesClassificacao" style="display:none"></div>
 
       <div id="triagemMotivoWrap" style="display:none">
+        <button type="button" class="botao-mover botao-voltar-triagem" id="botaoVoltarMotivo">‹ Voltar</button>
         <div class="campo-simples">
           <label for="triagemMotivo">Motivo (classificação "Outros")</label>
           <input type="text" id="triagemMotivo" placeholder="Descreva o motivo">
@@ -637,6 +670,7 @@
       </div>
 
       <div id="triagemPrazoWrap" style="display:none">
+        <button type="button" class="botao-mover botao-voltar-triagem" id="botaoVoltarPrazo">‹ Voltar</button>
         <div class="campo-simples">
           <label for="triagemPrazoDias">Prazo estimado (em dias)</label>
           <input type="number" id="triagemPrazoDias" min="1" max="365" placeholder="Ex: 3" inputmode="numeric">
@@ -688,8 +722,12 @@
   // ============================================================
   var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyJQQTkipnt-HrdxRn93ElTeUEyUqOaduDVGIWE8U3Qkm9OaK22cHwgmn5Q8uNZ2-b9-A/exec";
 
-  var CHAVE_SESSAO = "cva_painel_sessao_v2";
-  var INTERVALO_ATUALIZACAO_MS = 45000;
+  // Mesma chave usada em veiculos.html — assim, quem loga num dos dois
+  // sites de gestão (painel ou ficha de veículos) já entra direto no
+  // outro também, sem digitar login de novo. Só Michel e Danilo usam
+  // esses dois sites hoje.
+  var CHAVE_SESSAO = "cva_gestao_sessao_v1";
+  var INTERVALO_ATUALIZACAO_MS = 100000;
 
   var COLUNAS = [
     { chave: "novo", titulo: "Nova Solicitação", cor: "#2A6FB0" },
@@ -722,6 +760,8 @@
   var carregandoQuadro = document.getElementById("carregandoQuadro");
   var erroQuadro = document.getElementById("erroQuadro");
   var quadro = document.getElementById("quadro");
+  var campoBuscaPainel = document.getElementById("campoBuscaPainel");
+  var faixaResumoDia = document.getElementById("faixaResumoDia");
 
   // ---------- elementos: modal ----------
   var modalDetalhe = document.getElementById("modalDetalhe");
@@ -760,6 +800,8 @@
   var triagemPrazoDias = document.getElementById("triagemPrazoDias");
   var triagemPrestador = document.getElementById("triagemPrestador");
   var botaoConfirmarPrazo = document.getElementById("botaoConfirmarPrazo");
+  var botaoVoltarMotivo = document.getElementById("botaoVoltarMotivo");
+  var botaoVoltarPrazo = document.getElementById("botaoVoltarPrazo");
 
   // ---------- elementos: motivo do cancelamento (rejeitar ou cancelar) ----------
   var modalMotivoCancelamento = document.getElementById("modalMotivoCancelamento");
@@ -774,6 +816,7 @@
   var timerAtualizacao = null;
   var timerToast = null;
   var triagemEstado = { classificacao: null, motivoOutro: "" };
+  var buscaPainel = "";
 
   // ============================================================
   // JSONP genérico (mesmo padrão do formulário dos motoristas).
@@ -813,6 +856,46 @@
     };
 
     document.head.appendChild(tagScript);
+  }
+
+  campoBuscaPainel.addEventListener("input", function(){
+    buscaPainel = campoBuscaPainel.value.trim().toLowerCase();
+    renderizarQuadro();
+  });
+
+  // ============================================================
+  // Resumo do dia: quantas manutenções em andamento já estão atrasadas
+  // ou vencem hoje — dá uma visão geral sem precisar contar card por
+  // card. Só aparece quando há algo pra avisar.
+  // ============================================================
+  function atualizarResumoDia(){
+    var emAndamento = solicitacoesAtuais.filter(function(s){ return s.status === "em_andamento"; });
+    var atrasadas = 0, vencendoHoje = 0;
+    emAndamento.forEach(function(item){
+      var prazoInfo = calcularPrazo(item);
+      if (!prazoInfo) return;
+      if (prazoInfo.cor === "vermelho") atrasadas++;
+      else if (prazoInfo.cor === "amarelo") vencendoHoje++;
+    });
+
+    faixaResumoDia.innerHTML = "";
+    if (atrasadas === 0 && vencendoHoje === 0){
+      faixaResumoDia.style.display = "none";
+      return;
+    }
+    faixaResumoDia.style.display = "flex";
+    if (atrasadas > 0){
+      var pillAtrasadas = document.createElement("span");
+      pillAtrasadas.className = "resumo-pill vermelho";
+      pillAtrasadas.textContent = atrasadas + (atrasadas === 1 ? " atrasada" : " atrasadas");
+      faixaResumoDia.appendChild(pillAtrasadas);
+    }
+    if (vencendoHoje > 0){
+      var pillVencendo = document.createElement("span");
+      pillVencendo.className = "resumo-pill amarelo";
+      pillVencendo.textContent = vencendoHoje + (vencendoHoje === 1 ? " vencendo hoje" : " vencendo hoje");
+      faixaResumoDia.appendChild(pillVencendo);
+    }
   }
 
   function mostrarAvisoRapido(texto){
@@ -1004,10 +1087,32 @@
   // ============================================================
   // Monta o quadro (colunas + cards) a partir de solicitacoesAtuais.
   // ============================================================
+  // Prioridade de urgência de prazo: atrasado primeiro, depois vence
+  // hoje, depois o resto — usado pra ordenar os cards dentro da coluna.
+  function prioridadePrazo(item){
+    var prazoInfo = calcularPrazo(item);
+    if (!prazoInfo) return 3;
+    if (prazoInfo.cor === "vermelho") return 0;
+    if (prazoInfo.cor === "amarelo") return 1;
+    return 2;
+  }
+
   function renderizarQuadro(){
+    atualizarResumoDia();
     quadro.innerHTML = "";
     COLUNAS.forEach(function(coluna){
-      var itens = solicitacoesAtuais.filter(function(s){ return s.status === coluna.chave; });
+      var itens = solicitacoesAtuais.filter(function(s){
+        if (s.status !== coluna.chave) return false;
+        if (!buscaPainel) return true;
+        var alvo = [s.placa, s.motorista].join(" ").toLowerCase();
+        return alvo.indexOf(buscaPainel) !== -1;
+      });
+
+      // Dentro da coluna "Em andamento", os mais urgentes (atrasados,
+      // depois os que vencem hoje) aparecem primeiro.
+      if (coluna.chave === "em_andamento"){
+        itens.sort(function(a, b){ return prioridadePrazo(a) - prioridadePrazo(b); });
+      }
 
       var elColuna = document.createElement("div");
       elColuna.className = "coluna";
@@ -1203,7 +1308,11 @@
         link.href = "https://drive.google.com/file/d/" + fotoId + "/view";
         link.target = "_blank";
         link.rel = "noopener";
+        link.className = "foto-carregando";
         var img = document.createElement("img");
+        img.dataset.carregando = "1";
+        img.addEventListener("load", function(){ link.classList.remove("foto-carregando"); img.removeAttribute("data-carregando"); });
+        img.addEventListener("error", function(){ link.classList.remove("foto-carregando"); img.removeAttribute("data-carregando"); });
         img.src = "https://drive.google.com/thumbnail?id=" + fotoId + "&sz=w500";
         img.loading = "lazy";
         img.alt = "Foto da solicitação";
@@ -1261,6 +1370,15 @@
     triagemPrestador.value = "";
 
     triagemBotoesClassificacao.innerHTML = "";
+    var botaoVoltarClassificacao = document.createElement("button");
+    botaoVoltarClassificacao.type = "button";
+    botaoVoltarClassificacao.className = "botao-mover botao-voltar-triagem";
+    botaoVoltarClassificacao.textContent = "‹ Voltar";
+    botaoVoltarClassificacao.addEventListener("click", function(){
+      triagemBotoesClassificacao.style.display = "none";
+      triagemBotoesInicial.style.display = "flex";
+    });
+    triagemBotoesClassificacao.appendChild(botaoVoltarClassificacao);
     CLASSIFICACOES.forEach(function(classificacao){
       var botao = document.createElement("button");
       botao.type = "button";
@@ -1284,6 +1402,20 @@
   botaoAceitar.addEventListener("click", function(){
     triagemBotoesInicial.style.display = "none";
     triagemBotoesClassificacao.style.display = "flex";
+  });
+
+  botaoVoltarMotivo.addEventListener("click", function(){
+    triagemMotivoWrap.style.display = "none";
+    triagemBotoesClassificacao.style.display = "flex";
+  });
+
+  botaoVoltarPrazo.addEventListener("click", function(){
+    triagemPrazoWrap.style.display = "none";
+    if (triagemEstado.classificacao === "outros"){
+      triagemMotivoWrap.style.display = "block";
+    } else {
+      triagemBotoesClassificacao.style.display = "flex";
+    }
   });
 
   // "Rejeitar" abre o mesmo popup de motivo usado pra qualquer
