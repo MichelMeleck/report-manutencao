@@ -315,6 +315,30 @@
   }
   .card .fotos-tag svg{ width:13px; height:13px; }
 
+  .card .fornecedor-card{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    font-size:12px;
+    color:var(--texto-suave);
+    background:var(--bg);
+    border-radius:8px;
+    padding:6px 8px;
+    margin-top:2px;
+  }
+  .botao-editar-fornecedor{
+    flex:none;
+    font-size:11px;
+    font-weight:700;
+    color:var(--verde-escuro);
+    background:var(--verde-claro);
+    border:none;
+    padding:4px 9px;
+    border-radius:20px;
+    cursor:pointer;
+  }
+
   .prazo-badge{
     align-self:flex-start;
     font-size:11px;
@@ -491,6 +515,19 @@
     padding:4px 0 2px;
     outline:none;
   }
+  .campo-simples textarea{
+    width:100%;
+    font-size:15px;
+    font-family:inherit;
+    color:var(--texto);
+    background:transparent;
+    border:none;
+    padding:4px 0 2px;
+    outline:none;
+    resize:vertical;
+    min-height:76px;
+    line-height:1.4;
+  }
 
   /* ---------- toast (avisos rápidos) ---------- */
   .toast{
@@ -642,6 +679,8 @@
     <div class="linha-detalhe" id="modalClassificacaoWrap" style="display:none"><span class="rotulo">Classificação</span><span class="valor" id="modalClassificacao">–</span></div>
     <div class="linha-detalhe" id="modalPrazoWrap" style="display:none"><span class="rotulo">Prazo estimado</span><span class="valor" id="modalPrazo">–</span></div>
     <div class="linha-detalhe" id="modalAtualizadoPorWrap" style="display:none"><span class="rotulo">Atualizado por</span><span class="valor" id="modalAtualizadoPor">–</span></div>
+    <div class="linha-detalhe" id="modalPrestadorWrap" style="display:none"><span class="rotulo">Fornecedor</span><span class="valor" id="modalPrestador">–</span></div>
+    <div class="linha-detalhe" id="modalResolucaoWrap" style="display:none"><span class="rotulo">Diagnóstico / Resolução</span><span class="valor" id="modalResolucao">–</span></div>
     <div class="linha-detalhe" id="modalMotivoRejeicaoWrap" style="display:none"><span class="rotulo">Motivo do cancelamento</span><span class="valor" id="modalMotivoRejeicao">–</span></div>
 
     <div id="modalFotosWrap" style="display:none">
@@ -707,6 +746,43 @@
     </div>
     <div class="aviso-modal" id="motivoCancelamentoAviso">Informe o motivo do cancelamento para continuar.</div>
     <button type="button" class="botao-mover botao-rejeitar" id="botaoConfirmarMotivoCancelamento" style="margin-top:12px;width:100%">Confirmar cancelamento</button>
+  </div>
+</div>
+
+<!-- ============ MODAL: editar fornecedor ============
+     Aberto pelo botão "Editar" dentro do próprio card (só aparece nos
+     cards "Em andamento") — pra corrigir ou definir quem vai fazer a
+     manutenção sem precisar passar de novo pela triagem. -->
+<div class="modal-overlay" id="modalFornecedor">
+  <div class="modal-card">
+    <div class="modal-topo">
+      <div><h2 style="font-size:17px">Editar fornecedor</h2></div>
+      <button type="button" class="fechar-modal" id="fecharModalFornecedor" aria-label="Fechar">✕</button>
+    </div>
+    <div class="campo-simples">
+      <label for="fornecedorInput">Quem vai fazer (ou está fazendo) a manutenção</label>
+      <input type="text" id="fornecedorInput" placeholder="Ex: Oficina do Zé">
+    </div>
+    <button type="button" class="botao-mover botao-aceitar" id="botaoSalvarFornecedor" style="margin-top:12px;width:100%">Salvar</button>
+  </div>
+</div>
+
+<!-- ============ MODAL: diagnóstico/resolução (obrigatório pra concluir) ============
+     Aberto ao mover um card pra "Concluído" (arrastando ou pelo botão
+     "Mover para" no modal de detalhes). O texto é sempre obrigatório —
+     é o que fica registrado no histórico do veículo (veiculos.html). -->
+<div class="modal-overlay" id="modalConclusao">
+  <div class="modal-card">
+    <div class="modal-topo">
+      <div><h2 style="font-size:17px">Concluir manutenção</h2></div>
+      <button type="button" class="fechar-modal" id="fecharModalConclusao" aria-label="Fechar">✕</button>
+    </div>
+    <div class="campo-simples">
+      <label for="diagnosticoConclusaoInput">Diagnóstico e como foi resolvido</label>
+      <textarea id="diagnosticoConclusaoInput" placeholder="Ex: Troca da pastilha de freio dianteira — desgaste identificado na revisão."></textarea>
+    </div>
+    <div class="aviso-modal" id="diagnosticoConclusaoAviso">Informe o diagnóstico e a resolução para concluir.</div>
+    <button type="button" class="botao-mover botao-aceitar" id="botaoConfirmarConclusao" style="margin-top:12px;width:100%">Confirmar conclusão</button>
   </div>
 </div>
 
@@ -779,6 +855,10 @@
   var modalPrazo = document.getElementById("modalPrazo");
   var modalAtualizadoPorWrap = document.getElementById("modalAtualizadoPorWrap");
   var modalAtualizadoPor = document.getElementById("modalAtualizadoPor");
+  var modalPrestadorWrap = document.getElementById("modalPrestadorWrap");
+  var modalPrestador = document.getElementById("modalPrestador");
+  var modalResolucaoWrap = document.getElementById("modalResolucaoWrap");
+  var modalResolucao = document.getElementById("modalResolucao");
   var modalMotivoRejeicaoWrap = document.getElementById("modalMotivoRejeicaoWrap");
   var modalMotivoRejeicao = document.getElementById("modalMotivoRejeicao");
   var modalFotosWrap = document.getElementById("modalFotosWrap");
@@ -809,6 +889,19 @@
   var motivoCancelamentoInput = document.getElementById("motivoCancelamentoInput");
   var motivoCancelamentoAviso = document.getElementById("motivoCancelamentoAviso");
   var botaoConfirmarMotivoCancelamento = document.getElementById("botaoConfirmarMotivoCancelamento");
+
+  // ---------- elementos: editar fornecedor ----------
+  var modalFornecedor = document.getElementById("modalFornecedor");
+  var fecharModalFornecedorBtn = document.getElementById("fecharModalFornecedor");
+  var fornecedorInput = document.getElementById("fornecedorInput");
+  var botaoSalvarFornecedor = document.getElementById("botaoSalvarFornecedor");
+
+  // ---------- elementos: diagnóstico/resolução (concluir) ----------
+  var modalConclusao = document.getElementById("modalConclusao");
+  var fecharModalConclusaoBtn = document.getElementById("fecharModalConclusao");
+  var diagnosticoConclusaoInput = document.getElementById("diagnosticoConclusaoInput");
+  var diagnosticoConclusaoAviso = document.getElementById("diagnosticoConclusaoAviso");
+  var botaoConfirmarConclusao = document.getElementById("botaoConfirmarConclusao");
 
   var toastAviso = document.getElementById("toastAviso");
 
@@ -1158,6 +1251,8 @@
           if (!itemArrastado || itemArrastado.status === coluna.chave) return;
           if (coluna.chave === "cancelado"){
             pedirMotivoCancelamento(id);
+          } else if (coluna.chave === "concluido"){
+            pedirDiagnosticoConclusao(id);
           } else {
             moverPorArraste(id, coluna.chave);
           }
@@ -1235,6 +1330,28 @@
       card.appendChild(prazoEl);
     }
 
+    // Só nos cards "Em andamento": mostra quem está fazendo a
+    // manutenção e um botão pra editar isso direto, sem precisar abrir
+    // o modal de detalhes nem repetir a triagem.
+    if (item.status === "em_andamento"){
+      var linhaFornecedor = document.createElement("div");
+      linhaFornecedor.className = "fornecedor-card";
+      var textoFornecedor = document.createElement("span");
+      textoFornecedor.textContent = "Fornecedor: " + (item.prestador || "não definido");
+      linhaFornecedor.appendChild(textoFornecedor);
+      var botaoEditarFornecedor = document.createElement("span");
+      botaoEditarFornecedor.setAttribute("role", "button");
+      botaoEditarFornecedor.setAttribute("tabindex", "0");
+      botaoEditarFornecedor.className = "botao-editar-fornecedor";
+      botaoEditarFornecedor.textContent = "Editar";
+      botaoEditarFornecedor.addEventListener("click", function(ev){
+        ev.stopPropagation();
+        abrirModalFornecedor(item.id);
+      });
+      linhaFornecedor.appendChild(botaoEditarFornecedor);
+      card.appendChild(linhaFornecedor);
+    }
+
     card.addEventListener("click", function(){ abrirModalDetalhe(item.id); });
     return card;
   }
@@ -1299,6 +1416,20 @@
       modalMotivoRejeicaoWrap.style.display = "none";
     }
 
+    if (item.prestador){
+      modalPrestadorWrap.style.display = "flex";
+      modalPrestador.textContent = item.prestador;
+    } else {
+      modalPrestadorWrap.style.display = "none";
+    }
+
+    if (item.resolucao){
+      modalResolucaoWrap.style.display = "flex";
+      modalResolucao.textContent = item.resolucao;
+    } else {
+      modalResolucaoWrap.style.display = "none";
+    }
+
     if (item.fotos && item.fotos.length){
       modalFotosWrap.style.display = "block";
       modalFotosGrid.innerHTML = "";
@@ -1343,6 +1474,8 @@
         botao.addEventListener("click", function(){
           if (coluna.chave === "cancelado"){
             pedirMotivoCancelamento(item.id);
+          } else if (coluna.chave === "concluido"){
+            pedirDiagnosticoConclusao(item.id);
           } else {
             moverSolicitacao(item.id, coluna.chave);
           }
@@ -1559,7 +1692,7 @@
   // arrastar-e-soltar dos cards. Só faz a chamada; quem decide o que
   // mostrar na tela é moverComOtimismo, logo abaixo.
   // ============================================================
-  function moverSolicitacaoNoServidor(id, novoStatus, motivo, callback){
+  function moverSolicitacaoNoServidor(id, novoStatus, motivo, resolucao, callback){
     var sessao = obterSessaoPainel();
     if (!sessao){ callback(false, "Sessão expirada. Entre novamente."); return; }
 
@@ -1568,7 +1701,8 @@
       "&senha=" + encodeURIComponent(sessao.senha) +
       "&id=" + encodeURIComponent(id) +
       "&status=" + encodeURIComponent(novoStatus) +
-      "&motivo=" + encodeURIComponent(motivo || "");
+      "&motivo=" + encodeURIComponent(motivo || "") +
+      "&resolucao=" + encodeURIComponent(resolucao || "");
 
     jsonp(url, 12000,
       function(dados){
@@ -1592,19 +1726,22 @@
     if (!item) return;
     var statusAnterior = item.status;
     var motivoAnterior = item.motivoRejeicao;
+    var resolucaoAnterior = item.resolucao;
     var sessao = obterSessaoPainel();
 
     item.status = novoStatus;
     if (novoStatus === "cancelado" && opcoes.motivo) item.motivoRejeicao = opcoes.motivo;
+    if (novoStatus === "concluido" && opcoes.resolucao) item.resolucao = opcoes.resolucao;
     renderizarQuadro();
     if (opcoes.aoIniciar) opcoes.aoIniciar();
 
-    moverSolicitacaoNoServidor(id, novoStatus, opcoes.motivo, function(ok, erro){
+    moverSolicitacaoNoServidor(id, novoStatus, opcoes.motivo, opcoes.resolucao, function(ok, erro){
       if (ok){
         if (sessao) item.atualizadoPor = sessao.nome;
       } else {
         item.status = statusAnterior;
         item.motivoRejeicao = motivoAnterior;
+        item.resolucao = resolucaoAnterior;
         renderizarQuadro();
         mostrarAvisoRapido(erro);
       }
@@ -1680,6 +1817,117 @@
     } else {
       moverComOtimismo(id, "cancelado", { motivo: motivo });
     }
+  });
+
+  // ============================================================
+  // Popup "editar fornecedor" — aberto pelo botão "Editar" de dentro
+  // do card (só nos cards "Em andamento"). Edita só o campo
+  // PrestadorServico na planilha, sem mudar o status nem passar de
+  // novo pela triagem.
+  // ============================================================
+  var idFornecedorPendente = null;
+  var fornecedorAbertoEm = 0;
+
+  function abrirModalFornecedor(id){
+    var item = solicitacoesAtuais.filter(function(s){ return s.id === id; })[0];
+    if (!item) return;
+    idFornecedorPendente = id;
+    fornecedorInput.value = item.prestador || "";
+    setTimeout(function(){
+      modalFornecedor.classList.add("mostrar");
+      fornecedorAbertoEm = Date.now();
+      fornecedorInput.focus();
+    }, 30);
+  }
+  function fecharModalFornecedor(){
+    modalFornecedor.classList.remove("mostrar");
+    idFornecedorPendente = null;
+  }
+  fecharModalFornecedorBtn.addEventListener("click", fecharModalFornecedor);
+  modalFornecedor.addEventListener("click", function(ev){
+    if (ev.target !== modalFornecedor) return;
+    if (Date.now() - fornecedorAbertoEm < 400) return;
+    fecharModalFornecedor();
+  });
+
+  botaoSalvarFornecedor.addEventListener("click", function(){
+    var id = idFornecedorPendente;
+    var item = solicitacoesAtuais.filter(function(s){ return s.id === id; })[0];
+    var sessao = obterSessaoPainel();
+    if (!item || !sessao) return;
+
+    var novoPrestador = fornecedorInput.value.trim();
+    var prestadorAnterior = item.prestador;
+
+    fecharModalFornecedor();
+    item.prestador = novoPrestador;
+    renderizarQuadro();
+
+    var url = SCRIPT_URL + "?acao=editarSolicitacao" +
+      "&usuario=" + encodeURIComponent(sessao.usuario) +
+      "&senha=" + encodeURIComponent(sessao.senha) +
+      "&id=" + encodeURIComponent(id) +
+      "&prestador=" + encodeURIComponent(novoPrestador);
+
+    jsonp(url, 12000,
+      function(dados){
+        if (dados && dados.ok){
+          item.atualizadoPor = sessao.nome;
+        } else {
+          item.prestador = prestadorAnterior;
+          renderizarQuadro();
+          mostrarAvisoRapido((dados && dados.error) || "Não foi possível salvar o fornecedor.");
+        }
+      },
+      function(){
+        item.prestador = prestadorAnterior;
+        renderizarQuadro();
+        mostrarAvisoRapido("Sem conexão agora. Tente novamente.");
+      }
+    );
+  });
+
+  // ============================================================
+  // Popup "diagnóstico e resolução" — obrigatório pra mover qualquer
+  // card pra "Concluído" (arrastando ou pelo botão "Mover para"). Sem
+  // preencher, não confirma. O texto salvo aqui é o que aparece depois
+  // na Ficha do Veículo (veiculos.html), junto dessa manutenção.
+  // ============================================================
+  var idConclusaoPendente = null;
+  var conclusaoAbertoEm = 0;
+
+  function pedirDiagnosticoConclusao(id){
+    idConclusaoPendente = id;
+    diagnosticoConclusaoInput.value = "";
+    diagnosticoConclusaoAviso.classList.remove("mostrar");
+    setTimeout(function(){
+      modalConclusao.classList.add("mostrar");
+      conclusaoAbertoEm = Date.now();
+      diagnosticoConclusaoInput.focus();
+    }, 60);
+  }
+  function fecharModalConclusao(){
+    modalConclusao.classList.remove("mostrar");
+    idConclusaoPendente = null;
+  }
+  fecharModalConclusaoBtn.addEventListener("click", fecharModalConclusao);
+  modalConclusao.addEventListener("click", function(ev){
+    if (ev.target !== modalConclusao) return;
+    if (Date.now() - conclusaoAbertoEm < 400) return;
+    fecharModalConclusao();
+  });
+
+  botaoConfirmarConclusao.addEventListener("click", function(){
+    var texto = diagnosticoConclusaoInput.value.trim();
+    if (!texto){
+      diagnosticoConclusaoAviso.classList.add("mostrar");
+      diagnosticoConclusaoInput.focus();
+      return;
+    }
+    var id = idConclusaoPendente;
+    fecharModalConclusao();
+    fecharModal();
+    moverComOtimismo(id, "concluido", { resolucao: texto });
   });
 
   // ============================================================
