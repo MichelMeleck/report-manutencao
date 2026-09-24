@@ -7,6 +7,19 @@
 <meta name="description" content="Checklist de vistoria do veículo, com fotos e assinatura.">
 <meta name="theme-color" content="#1F7A4D">
 
+<!-- ============================================================
+     Deixa o site instalável como app no celular (PWA): ícone na
+     tela inicial, abre em tela cheia sem a barra do navegador.
+     Usa um manifest próprio (manifest-checklist.json) pra abrir
+     direto neste checklist, não no formulário de manutenção.
+     ============================================================ -->
+<link rel="manifest" href="manifest-checklist.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Checklist CVA">
+<meta name="mobile-web-app-capable" content="yes">
+
 <style>
   :root{
     --verde:#1F7A4D;
@@ -133,6 +146,7 @@
     border-radius:12px; padding:12px 14px; font-size:13.5px; line-height:1.5;
   }
   .erro-msg.mostrar{ display:block; }
+  .erro-msg.aviso-rascunho{ background:var(--verde-claro); color:var(--verde-escuro); }
 
   .ajuda-login{ font-size:12.5px; color:var(--texto-suave); line-height:1.5; margin:2px 4px 0; }
 
@@ -353,6 +367,8 @@
       </div>
     </div>
 
+    <div class="erro-msg aviso-rascunho" id="avisoRascunhoChecklist">Recuperamos o que você tinha preenchido antes de sair. Confira as respostas e continue de onde parou.</div>
+
     <form id="formularioChecklist" novalidate>
 
       <div class="titulo-secao">Perguntas da vistoria</div>
@@ -411,6 +427,18 @@
   "use strict";
 
   // ============================================================
+  // Registra o service worker (sw.js), que é o que permite o
+  // navegador oferecer "instalar" este checklist como app. Se o
+  // arquivo não existir ainda no repositório, isso simplesmente falha
+  // em silêncio e o site continua funcionando normalmente como página.
+  // ============================================================
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
+
+  // ============================================================
   // Cole aqui a MESMA URL do Apps Script já usada no formulário de
   // manutenção (reporte-manutencao.html) e nos outros sites — é o
   // mesmo backend, só com ações novas.
@@ -421,6 +449,7 @@
   var QUALIDADE_JPEG = 0.72;
   var FECHAMENTO_AUTOMATICO_MS = 3500;
   var CHAVE_SESSAO = "cva_sessao_checklist_v1";
+  var CHAVE_RASCUNHO_CHECKLIST = "cva_rascunho_checklist_v1";
 
   var ITENS_FOTOS_GERAIS = [
     "Frente", "Trás", "Lateral frente esquerda", "Lateral frente direita",
@@ -462,6 +491,7 @@
   var botaoLimparAssinatura = document.getElementById("botaoLimparAssinatura");
   var erroChecklist = document.getElementById("erroChecklist");
   var botaoEnviarChecklist = document.getElementById("botaoEnviarChecklist");
+  var avisoRascunhoChecklist = document.getElementById("avisoRascunhoChecklist");
 
   var modalSucesso = document.getElementById("modalSucesso");
   var botaoFecharModal = document.getElementById("botaoFecharModal");
@@ -472,10 +502,14 @@
 
   var placaAtual = "";
   var perguntasAtuais = [];
-  var respostasEstado = {}; // chave -> { resposta, problema, grupoFoto }
+  var respostasEstado = {}; // chave -> { resposta, problema, grupoFoto, descricao }
   var slotsFotosGerais = []; // [{ rotulo, slot }]
   var mensagemAssinaturaAtual = "";
   var timerFechamentoModal = null;
+  var cardsPorChave = {}; // chave -> { card, descricaoTextarea }
+  var perguntasPorChave = {}; // chave -> pergunta
+  var restaurandoRascunhoChecklist = false;
+  var timerSalvarRascunhoChecklist = null;
 
   // ============================================================
   // JSONP genérico — mesmo padrão usado nos outros sites do projeto.
@@ -718,7 +752,7 @@
 
   // Slot de foto único (usado tanto pras fotos gerais quanto pra foto
   // de um item que indicou problema).
-  function criarSlotFoto(rotuloTexto){
+  function criarSlotFoto(rotuloTexto, aoMudar){
     var estado = { foto: null };
 
     var slot = document.createElement("div");
@@ -767,6 +801,7 @@
       remover.addEventListener("click", function(){
         estado.foto = null;
         renderizarVazio();
+        if (aoMudar) aoMudar();
       });
       area.appendChild(remover);
     }
@@ -778,6 +813,7 @@
       comprimirImagem(arquivo, function(resultado){
         estado.foto = resultado;
         renderizarPreenchido();
+        if (aoMudar) aoMudar();
       });
     });
 
@@ -786,7 +822,11 @@
     return {
       elemento: slot,
       temFoto: function(){ return !!estado.foto; },
-      obterFoto: function(){ return estado.foto; }
+      obterFoto: function(){ return estado.foto; },
+      definirFoto: function(foto){
+        estado.foto = foto || null;
+        if (estado.foto) renderizarPreenchido(); else renderizarVazio();
+      }
     };
   }
 
@@ -794,7 +834,7 @@
   // problema, ou de um item com foto obrigatória — até MAX_FOTOS
   // fotos, cada uma removível individualmente).
   var MAX_FOTOS_POR_ITEM = 3;
-  function criarGrupoFotos(rotuloBase){
+  function criarGrupoFotos(rotuloBase, aoMudar){
     var estado = { fotos: [] }; // cada item: resultado de comprimirImagem
 
     var wrap = document.createElement("div");
@@ -830,6 +870,7 @@
         remover.addEventListener("click", function(){
           estado.fotos.splice(indice, 1);
           renderizar();
+          if (aoMudar) aoMudar();
         });
         item.appendChild(remover);
         grid.appendChild(item);
@@ -855,6 +896,7 @@
       comprimirImagem(arquivo, function(resultado){
         estado.fotos.push(resultado);
         renderizar();
+        if (aoMudar) aoMudar();
       });
     });
 
@@ -863,7 +905,11 @@
     return {
       elemento: wrap,
       temFoto: function(){ return estado.fotos.length > 0; },
-      obterFotos: function(){ return estado.fotos; }
+      obterFotos: function(){ return estado.fotos; },
+      definirFotos: function(fotosArray){
+        estado.fotos = fotosArray || [];
+        renderizar();
+      }
     };
   }
 
@@ -876,10 +922,13 @@
     mensagemAssinaturaAtual = mensagemAssinatura ||
       "Declaro que as informações e fotos registradas neste checklist são verdadeiras e condizentes com o real estado do veículo no momento da vistoria.";
     respostasEstado = {};
+    cardsPorChave = {};
+    perguntasPorChave = {};
 
     perguntasLista.innerHTML = "";
     perguntas.forEach(function(p){
       respostasEstado[p.chave] = { resposta: null, problema: false, grupoFoto: null, descricao: "" };
+      perguntasPorChave[p.chave] = p;
 
       var card = document.createElement("div");
       card.className = "campo pergunta-card";
@@ -926,6 +975,7 @@
       descricaoTextarea.placeholder = "Descreva o que está acontecendo...";
       descricaoTextarea.addEventListener("input", function(){
         respostasEstado[p.chave].descricao = descricaoTextarea.value;
+        salvarRascunhoChecklistComAtraso();
       });
       descricaoWrap.appendChild(descricaoTextarea);
       card.appendChild(descricaoWrap);
@@ -935,11 +985,13 @@
       fotoWrap.style.display = "none";
       card.appendChild(fotoWrap);
 
+      cardsPorChave[p.chave] = { card: card, descricaoTextarea: descricaoTextarea, fotoWrap: fotoWrap };
+
       perguntasLista.appendChild(card);
     });
 
     slotsFotosGerais = ITENS_FOTOS_GERAIS.map(function(rotuloTexto){
-      var slot = criarSlotFoto(rotuloTexto);
+      var slot = criarSlotFoto(rotuloTexto, salvarRascunhoChecklistComAtraso);
       return { rotulo: rotuloTexto, slot: slot };
     });
     fotosGeraisGrid.innerHTML = "";
@@ -948,8 +1000,12 @@
     mensagemAssinaturaTexto.textContent = mensagemAssinaturaAtual;
 
     esconderErroChecklist();
+    avisoRascunhoChecklist.classList.remove("mostrar");
     mostrarTelaChecklistView();
-    requestAnimationFrame(prepararCanvas);
+    requestAnimationFrame(function(){
+      prepararCanvas();
+      restaurarRascunhoChecklistSeExistir();
+    });
   }
 
   // Uma pergunta pede foto quando a resposta escolhida é a que indica
@@ -957,6 +1013,99 @@
   // não importa a resposta.
   function perguntaPedeFoto(p, ehProblema){
     return ehProblema || !!p.fotoObrigatoria;
+  }
+
+  // ============================================================
+  // Rascunho automático do checklist — salva o que já foi preenchido
+  // neste aparelho, pra não perder nada se a internet cair ou a
+  // pessoa fechar o app sem querer no meio da vistoria. É apagado
+  // assim que o checklist é enviado com sucesso.
+  // ============================================================
+  function normalizarPlacaChecklist(placa){
+    return String(placa || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  }
+
+  function salvarRascunhoChecklist(){
+    if (restaurandoRascunhoChecklist || !placaAtual) return;
+    try {
+      var respostas = perguntasAtuais.map(function(p){
+        var estado = respostasEstado[p.chave];
+        return {
+          chave: p.chave,
+          resposta: estado.resposta,
+          descricao: estado.descricao || "",
+          fotos: (estado.grupoFoto && estado.grupoFoto.temFoto()) ? estado.grupoFoto.obterFotos() : []
+        };
+      });
+      var fotosGerais = slotsFotosGerais.map(function(item){
+        return { rotulo: item.rotulo, foto: item.slot.obterFoto() };
+      });
+      var rascunho = {
+        placa: placaAtual,
+        respostas: respostas,
+        fotosGerais: fotosGerais,
+        assinatura: assinaturaTemTraco ? canvasAssinatura.toDataURL("image/png") : null,
+        salvoEm: Date.now()
+      };
+      localStorage.setItem(CHAVE_RASCUNHO_CHECKLIST, JSON.stringify(rascunho));
+    } catch(e){}
+  }
+  function salvarRascunhoChecklistComAtraso(){
+    if (timerSalvarRascunhoChecklist) clearTimeout(timerSalvarRascunhoChecklist);
+    timerSalvarRascunhoChecklist = setTimeout(salvarRascunhoChecklist, 600);
+  }
+  function limparRascunhoChecklist(){
+    try { localStorage.removeItem(CHAVE_RASCUNHO_CHECKLIST); } catch(e){}
+    avisoRascunhoChecklist.classList.remove("mostrar");
+  }
+  function restaurarRascunhoChecklistSeExistir(){
+    var bruto;
+    try { bruto = localStorage.getItem(CHAVE_RASCUNHO_CHECKLIST); } catch(e){ bruto = null; }
+    if (!bruto) return;
+    var rascunho;
+    try { rascunho = JSON.parse(bruto); } catch(e){ rascunho = null; }
+    if (!rascunho) return;
+
+    if (normalizarPlacaChecklist(rascunho.placa) !== normalizarPlacaChecklist(placaAtual)){
+      // Rascunho é de outra placa — não faz sentido pra este checklist.
+      limparRascunhoChecklist();
+      return;
+    }
+
+    restaurandoRascunhoChecklist = true;
+
+    (rascunho.respostas || []).forEach(function(r){
+      var info = cardsPorChave[r.chave];
+      var p = perguntasPorChave[r.chave];
+      if (!info || !p || !r.resposta) return;
+      selecionarResposta(p, r.resposta, info.card);
+      if (r.descricao){
+        respostasEstado[p.chave].descricao = r.descricao;
+        if (info.descricaoTextarea) info.descricaoTextarea.value = r.descricao;
+      }
+      if (r.fotos && r.fotos.length && respostasEstado[p.chave].grupoFoto){
+        respostasEstado[p.chave].grupoFoto.definirFotos(r.fotos);
+      }
+    });
+
+    if (rascunho.fotosGerais && rascunho.fotosGerais.length){
+      slotsFotosGerais.forEach(function(item){
+        var salvo = rascunho.fotosGerais.find(function(f){ return f.rotulo === item.rotulo && f.foto; });
+        if (salvo) item.slot.definirFoto(salvo.foto);
+      });
+    }
+
+    if (rascunho.assinatura){
+      var imgAssinatura = new Image();
+      imgAssinatura.onload = function(){
+        ctxAssinatura.drawImage(imgAssinatura, 0, 0, canvasAssinatura.clientWidth, canvasAssinatura.clientHeight);
+        assinaturaTemTraco = true;
+      };
+      imgAssinatura.src = rascunho.assinatura;
+    }
+
+    restaurandoRascunhoChecklist = false;
+    avisoRascunhoChecklist.classList.add("mostrar");
   }
 
   function selecionarResposta(p, valor, card){
@@ -975,7 +1124,7 @@
     if (perguntaPedeFoto(p, ehProblema)){
       fotoWrap.style.display = "block";
       if (!respostasEstado[p.chave].grupoFoto){
-        var grupo = criarGrupoFotos("Foto do item: " + p.pergunta);
+        var grupo = criarGrupoFotos("Foto do item: " + p.pergunta, salvarRascunhoChecklistComAtraso);
         respostasEstado[p.chave].grupoFoto = grupo;
         fotoWrap.innerHTML = "";
         fotoWrap.appendChild(grupo.elemento);
@@ -996,6 +1145,8 @@
       var descricaoTextareaEl = descricaoWrap.querySelector(".descricao-textarea");
       if (descricaoTextareaEl) descricaoTextareaEl.value = "";
     }
+
+    salvarRascunhoChecklistComAtraso();
   }
 
   // ============================================================
@@ -1045,6 +1196,7 @@
     assinaturaTemTraco = true;
   }
   function pararTraco(){
+    if (desenhandoAssinatura) salvarRascunhoChecklistComAtraso();
     desenhandoAssinatura = false;
     ultimoPontoAssinatura = null;
   }
@@ -1059,7 +1211,7 @@
     if (telaChecklist.style.display !== "none") prepararCanvas();
   });
 
-  botaoLimparAssinatura.addEventListener("click", function(){ prepararCanvas(); });
+  botaoLimparAssinatura.addEventListener("click", function(){ prepararCanvas(); salvarRascunhoChecklistComAtraso(); });
 
   // ============================================================
   // Popups
@@ -1152,6 +1304,7 @@
       body: JSON.stringify(payload)
     })
     .then(function(){
+      limparRascunhoChecklist();
       abrirModalSucesso();
     })
     .catch(function(){
