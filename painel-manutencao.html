@@ -1742,21 +1742,24 @@
     if (!item) return;
     var statusAnterior = item.status;
     var motivoAnterior = item.motivoRejeicao;
+    var diagnosticoAnterior = item.diagnostico;
     var resolucaoAnterior = item.resolucao;
     var sessao = obterSessaoPainel();
 
     item.status = novoStatus;
     if (novoStatus === "cancelado" && opcoes.motivo) item.motivoRejeicao = opcoes.motivo;
+    if (novoStatus === "concluido" && opcoes.diagnostico) item.diagnostico = opcoes.diagnostico;
     if (novoStatus === "concluido" && opcoes.resolucao) item.resolucao = opcoes.resolucao;
     renderizarQuadro();
     if (opcoes.aoIniciar) opcoes.aoIniciar();
 
-    moverSolicitacaoNoServidor(id, novoStatus, opcoes.motivo, opcoes.resolucao, function(ok, erro){
+    moverSolicitacaoNoServidor(id, novoStatus, opcoes.motivo, opcoes.diagnostico, opcoes.resolucao, function(ok, erro){
       if (ok){
         if (sessao) item.atualizadoPor = sessao.nome;
       } else {
         item.status = statusAnterior;
         item.motivoRejeicao = motivoAnterior;
+        item.diagnostico = diagnosticoAnterior;
         item.resolucao = resolucaoAnterior;
         renderizarQuadro();
         mostrarAvisoRapido(erro);
@@ -1915,6 +1918,7 @@
   function pedirDiagnosticoConclusao(id){
     idConclusaoPendente = id;
     diagnosticoConclusaoInput.value = "";
+    resolucaoConclusaoInput.value = "";
     diagnosticoConclusaoAviso.classList.remove("mostrar");
     setTimeout(function(){
       modalConclusao.classList.add("mostrar");
@@ -1934,16 +1938,22 @@
   });
 
   botaoConfirmarConclusao.addEventListener("click", function(){
-    var texto = diagnosticoConclusaoInput.value.trim();
-    if (!texto){
+    var textoDiagnostico = diagnosticoConclusaoInput.value.trim();
+    var textoResolucao = resolucaoConclusaoInput.value.trim();
+    if (!textoDiagnostico){
       diagnosticoConclusaoAviso.classList.add("mostrar");
       diagnosticoConclusaoInput.focus();
+      return;
+    }
+    if (!textoResolucao){
+      diagnosticoConclusaoAviso.classList.add("mostrar");
+      resolucaoConclusaoInput.focus();
       return;
     }
     var id = idConclusaoPendente;
     fecharModalConclusao();
     fecharModal();
-    moverComOtimismo(id, "concluido", { resolucao: texto });
+    moverComOtimismo(id, "concluido", { diagnostico: textoDiagnostico, resolucao: textoResolucao });
   });
 
   // ============================================================
