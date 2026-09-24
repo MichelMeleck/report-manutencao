@@ -150,6 +150,42 @@
 
   .ajuda-login{ font-size:12.5px; color:var(--texto-suave); line-height:1.5; margin:2px 4px 0; }
 
+  .duas-colunas{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:420px){ .duas-colunas{ grid-template-columns:1fr; } }
+
+  .campo-estatico{
+    display:flex; align-items:center; gap:8px;
+    font-size:16px; padding:6px 0 2px; color:var(--texto);
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ---------- Login por CPF: passo a passo e captura de rosto ---------- */
+  .voltar-login{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:13px; font-weight:700; color:var(--texto-suave);
+    margin-bottom:6px; background:none; border:none; cursor:pointer;
+    padding:0; font-family:inherit;
+  }
+  .captura-rosto{
+    display:flex; flex-direction:column; align-items:center; gap:12px;
+    padding:16px; margin-top:10px;
+    border:1.5px dashed var(--borda); border-radius:14px; background:var(--verde-claro);
+  }
+  .captura-rosto .moldura{
+    width:170px; height:170px; border-radius:50%; overflow:hidden; flex:none;
+    background:rgba(0,0,0,.08); border:3px solid var(--verde);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .captura-rosto video, .captura-rosto img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .captura-rosto .placeholder{ color:var(--verde-escuro); opacity:.55; }
+  .captura-rosto .captura-botoes{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  .captura-rosto button{
+    padding:10px 16px; border-radius:10px; border:1.5px solid var(--verde);
+    background:var(--card); color:var(--verde-escuro); font-weight:700; font-size:13.5px; cursor:pointer;
+  }
+  .captura-rosto button.principal{ background:var(--verde); color:#fff; }
+  .captura-rosto .status-captura{ font-size:12.5px; color:var(--texto-suave); text-align:center; line-height:1.4; }
+
   /* Seção com título dentro da tela do checklist */
   .titulo-secao{
     font-size:15px; font-weight:700; margin:6px 2px -4px;
@@ -302,26 +338,94 @@
     <p class="sub" id="subtituloTela">Faça login para preencher o checklist semanal do veículo.</p>
   </header>
 
-  <!-- ===================== TELA DE LOGIN ===================== -->
+  <!-- ===================== TELA DE LOGIN (por CPF) ===================== -->
   <div id="telaLogin">
-    <form id="formularioLogin" novalidate>
-      <div class="campo">
-        <label for="usuario">Usuário <span class="obrig">*</span></label>
-        <input type="text" id="usuario" name="usuario" autocomplete="username" autocapitalize="words" placeholder="Primeiro Nome" required>
-      </div>
-      <div class="campo">
-        <label for="senha">Senha <span class="obrig">*</span></label>
-        <input type="password" id="senha" name="senha" inputmode="numeric" autocomplete="current-password" placeholder="Senha de 6 dígitos" maxlength="6" required>
-      </div>
-      <p class="ajuda-login">Usuário é o seu primeiro nome. Senha é o mesmo código de 6 dígitos que você já usa no formulário de manutenção.</p>
 
-      <div class="erro-msg" id="erroLogin"></div>
+    <!-- Passo 1: informar o CPF -->
+    <div id="passoCpf">
+      <form id="formularioCpf" novalidate>
+        <div class="campo">
+          <label for="cpfLogin">CPF <span class="obrig">*</span></label>
+          <input type="text" id="cpfLogin" name="cpf" inputmode="numeric" autocomplete="username" placeholder="000.000.000-00" maxlength="14" required>
+        </div>
+        <p class="ajuda-login">Digite seu CPF. Se for a primeira vez usando o app, vamos te levar direto pro cadastro. É o mesmo login usado no Reporte de Manutenção.</p>
 
-      <button type="submit" class="enviar" id="botaoLogin">
-        <span class="spinner"></span>
-        <span class="rotulo-normal">Entrar</span>
+        <div class="erro-msg" id="erroCpf"></div>
+
+        <button type="submit" class="enviar" id="botaoContinuarCpf">
+          <span class="spinner"></span>
+          <span class="rotulo-normal">Continuar</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Passo 2: já cadastrado — pede a senha -->
+    <div id="passoSenha" style="display:none">
+      <button type="button" class="voltar-login" id="botaoVoltarCpf">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 5l-7 7 7 7" stroke="#5B6B62" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Trocar CPF
       </button>
-    </form>
+      <form id="formularioSenha" novalidate>
+        <div class="campo">
+          <label>CPF</label>
+          <div class="campo-estatico" id="cpfSenhaExibicao">–</div>
+        </div>
+        <div class="campo">
+          <label for="pinLogin">Senha <span class="obrig">*</span></label>
+          <input type="password" id="pinLogin" name="pin" inputmode="numeric" autocomplete="current-password" placeholder="Sua senha de 4 a 6 números" maxlength="6" required>
+        </div>
+
+        <div class="erro-msg" id="erroSenha"></div>
+
+        <button type="submit" class="enviar" id="botaoEntrarSenha">
+          <span class="spinner"></span>
+          <span class="rotulo-normal">Entrar</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Passo 3: CPF novo — cadastro (nome, senha, reconhecimento facial) -->
+    <div id="passoCadastro" style="display:none">
+      <button type="button" class="voltar-login" id="botaoVoltarCpfCadastro">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 5l-7 7 7 7" stroke="#5B6B62" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Trocar CPF
+      </button>
+      <p class="ajuda-login">Esse CPF ainda não tem cadastro. Preencha seus dados abaixo pra criar seu acesso.</p>
+      <form id="formularioCadastro" novalidate>
+        <div class="campo">
+          <label for="nomeCadastro">Nome completo <span class="obrig">*</span></label>
+          <input type="text" id="nomeCadastro" name="nome" autocapitalize="words" autocomplete="name" placeholder="Seu nome completo" required>
+        </div>
+        <div class="campo">
+          <label>CPF</label>
+          <div class="campo-estatico" id="cpfCadastroExibicao">–</div>
+        </div>
+        <div class="duas-colunas">
+          <div class="campo">
+            <label for="pinCadastro">Crie uma senha <span class="obrig">*</span></label>
+            <input type="password" id="pinCadastro" name="pinCadastro" inputmode="numeric" autocomplete="new-password" placeholder="4 a 6 números" maxlength="6" required>
+          </div>
+          <div class="campo">
+            <label for="pinCadastroConfirmar">Confirme a senha <span class="obrig">*</span></label>
+            <input type="password" id="pinCadastroConfirmar" name="pinCadastroConfirmar" inputmode="numeric" autocomplete="new-password" placeholder="Repita a senha" maxlength="6" required>
+          </div>
+        </div>
+
+        <div class="campo">
+          <label>Reconhecimento facial <span class="obrig">*</span></label>
+          <div id="capturaRostoWrap"></div>
+          <p class="fotos-legenda" style="font-size:12px;color:var(--texto-suave);margin-top:8px">Vamos abrir a câmera pra tirar uma foto sua, guardada junto do seu cadastro.</p>
+        </div>
+
+        <div class="erro-msg" id="erroCadastro"></div>
+
+        <button type="submit" class="enviar" id="botaoCadastrar">
+          <span class="spinner"></span>
+          <span class="rotulo-normal">Cadastrar e entrar</span>
+        </button>
+      </form>
+    </div>
+
   </div>
 
   <!-- ===================== TELA: ESCOLHER PLACA ===================== -->
@@ -464,12 +568,33 @@
   var telaPlaca = document.getElementById("telaPlaca");
   var telaChecklist = document.getElementById("telaChecklist");
 
-  // ---------- elementos: login ----------
-  var formularioLogin = document.getElementById("formularioLogin");
-  var campoUsuario = document.getElementById("usuario");
-  var campoSenha = document.getElementById("senha");
-  var erroLogin = document.getElementById("erroLogin");
-  var botaoLogin = document.getElementById("botaoLogin");
+  // ---------- elementos: login por CPF ----------
+  var passoCpf = document.getElementById("passoCpf");
+  var formularioCpf = document.getElementById("formularioCpf");
+  var campoCpfLogin = document.getElementById("cpfLogin");
+  var erroCpf = document.getElementById("erroCpf");
+  var botaoContinuarCpf = document.getElementById("botaoContinuarCpf");
+
+  var passoSenha = document.getElementById("passoSenha");
+  var botaoVoltarCpf = document.getElementById("botaoVoltarCpf");
+  var cpfSenhaExibicao = document.getElementById("cpfSenhaExibicao");
+  var formularioSenha = document.getElementById("formularioSenha");
+  var campoPinLogin = document.getElementById("pinLogin");
+  var erroSenha = document.getElementById("erroSenha");
+  var botaoEntrarSenha = document.getElementById("botaoEntrarSenha");
+
+  var passoCadastro = document.getElementById("passoCadastro");
+  var botaoVoltarCpfCadastro = document.getElementById("botaoVoltarCpfCadastro");
+  var cpfCadastroExibicao = document.getElementById("cpfCadastroExibicao");
+  var formularioCadastro = document.getElementById("formularioCadastro");
+  var campoNomeCadastro = document.getElementById("nomeCadastro");
+  var campoPinCadastro = document.getElementById("pinCadastro");
+  var campoPinCadastroConfirmar = document.getElementById("pinCadastroConfirmar");
+  var capturaRostoWrap = document.getElementById("capturaRostoWrap");
+  var erroCadastro = document.getElementById("erroCadastro");
+  var botaoCadastrar = document.getElementById("botaoCadastrar");
+
+  var cpfAtual = ""; // CPF (só dígitos) do passo em andamento (senha ou cadastro)
 
   // ---------- elementos: tela placa ----------
   var nomeMotoristaPlaca = document.getElementById("nomeMotoristaPlaca");
@@ -552,22 +677,83 @@
   }
 
   // ============================================================
-  // Sessão do motorista (guardada só neste aparelho/navegador) —
-  // própria deste site, separada da sessão do formulário de manutenção.
+  // Sessão do motorista (guardada só neste aparelho/navegador) — CPF +
+  // senha (PIN) + nome, própria deste site, separada da sessão do
+  // formulário de manutenção. Sessões salvas ANTES da troca pro login
+  // por CPF não têm esses campos e por isso são tratadas como
+  // inválidas (obterSessao devolve null), levando a pessoa pra tela de
+  // CPF de novo — o cadastro é só uma vez, depois fica salvo aqui.
   // ============================================================
   function obterSessao(){
     try {
       var bruto = localStorage.getItem(CHAVE_SESSAO);
       if (!bruto) return null;
       var sessao = JSON.parse(bruto);
-      return (sessao && sessao.nome) ? sessao : null;
+      return (sessao && sessao.nome && sessao.cpf && sessao.pin) ? sessao : null;
     } catch(e){ return null; }
   }
-  function salvarSessao(nome){
-    try { localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ nome: nome, desde: Date.now() })); } catch(e){}
+  function salvarSessao(cpf, pin, nome){
+    try { localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ cpf: cpf, pin: pin, nome: nome, desde: Date.now() })); } catch(e){}
   }
   function limparSessao(){
     try { localStorage.removeItem(CHAVE_SESSAO); } catch(e){}
+  }
+
+  function formatarCpfVisual(digitos){
+    var d = String(digitos || "").slice(0, 11);
+    if (d.length > 9) return d.slice(0,3) + "." + d.slice(3,6) + "." + d.slice(6,9) + "-" + d.slice(9);
+    if (d.length > 6) return d.slice(0,3) + "." + d.slice(3,6) + "." + d.slice(6);
+    if (d.length > 3) return d.slice(0,3) + "." + d.slice(3);
+    return d;
+  }
+
+  /**
+   * Confere se os 11 dígitos batem com o cálculo oficial dos dígitos
+   * verificadores do CPF — mesma conta feita no backend, só pra dar
+   * feedback na hora sem precisar de internet.
+   */
+  function cpfValidoCliente(digitos){
+    if (digitos.length !== 11 || /^(\d)\1{10}$/.test(digitos)) return false;
+    function calcularDigito(base){
+      var soma = 0;
+      for (var i = 0; i < base.length; i++) soma += parseInt(base.charAt(i), 10) * (base.length + 1 - i);
+      var resto = (soma * 10) % 11;
+      return resto === 10 ? 0 : resto;
+    }
+    var d1 = calcularDigito(digitos.substring(0, 9));
+    var d2 = calcularDigito(digitos.substring(0, 9) + d1);
+    return digitos === digitos.substring(0, 9) + String(d1) + String(d2);
+  }
+
+  function mostrarPassoCpf(){
+    passoCpf.style.display = "";
+    passoSenha.style.display = "none";
+    passoCadastro.style.display = "none";
+    esconderErroCpf();
+    campoCpfLogin.value = "";
+    if (capturaRosto) capturaRosto.pararCamera();
+  }
+  function mostrarPassoSenha(digitos){
+    cpfAtual = digitos;
+    passoCpf.style.display = "none";
+    passoSenha.style.display = "";
+    passoCadastro.style.display = "none";
+    cpfSenhaExibicao.textContent = formatarCpfVisual(digitos);
+    campoPinLogin.value = "";
+    esconderErroSenha();
+    campoPinLogin.focus();
+  }
+  function mostrarPassoCadastro(digitos){
+    cpfAtual = digitos;
+    passoCpf.style.display = "none";
+    passoSenha.style.display = "none";
+    passoCadastro.style.display = "";
+    cpfCadastroExibicao.textContent = formatarCpfVisual(digitos);
+    campoNomeCadastro.value = "";
+    campoPinCadastro.value = "";
+    campoPinCadastroConfirmar.value = "";
+    esconderErroCadastro();
+    if (capturaRosto) capturaRosto.reiniciar();
   }
 
   function mostrarTelaLogin(){
@@ -576,7 +762,7 @@
     telaChecklist.style.display = "none";
     tituloTela.textContent = "Entrar";
     subtituloTela.textContent = "Faça login para preencher o checklist semanal do veículo.";
-    campoSenha.value = "";
+    mostrarPassoCpf();
   }
   function mostrarTelaPlacaView(nome){
     nomeMotoristaPlaca.textContent = nome;
@@ -599,54 +785,314 @@
     nomeMotoristaChecklist.textContent = (sessao ? sessao.nome : "–") + " · " + placaAtual;
   }
 
-  function mostrarErroLogin(texto){ erroLogin.textContent = texto; erroLogin.classList.add("mostrar"); }
-  function esconderErroLogin(){ erroLogin.classList.remove("mostrar"); }
+  function mostrarErroCpf(texto){ erroCpf.textContent = texto; erroCpf.classList.add("mostrar"); }
+  function esconderErroCpf(){ erroCpf.classList.remove("mostrar"); }
+  function mostrarErroSenha(texto){ erroSenha.textContent = texto; erroSenha.classList.add("mostrar"); }
+  function esconderErroSenha(){ erroSenha.classList.remove("mostrar"); }
+  function mostrarErroCadastro(texto){ erroCadastro.textContent = texto; erroCadastro.classList.add("mostrar"); }
+  function esconderErroCadastro(){ erroCadastro.classList.remove("mostrar"); }
   function mostrarErroPlaca(texto){ erroPlaca.textContent = texto; erroPlaca.classList.add("mostrar"); }
   function esconderErroPlaca(){ erroPlaca.classList.remove("mostrar"); }
   function mostrarErroChecklist(texto){ erroChecklist.textContent = texto; erroChecklist.classList.add("mostrar"); erroChecklist.scrollIntoView({ behavior:"smooth", block:"center" }); }
   function esconderErroChecklist(){ erroChecklist.classList.remove("mostrar"); }
 
-  formularioLogin.addEventListener("submit", function(ev){
-    ev.preventDefault();
-    esconderErroLogin();
+  campoCpfLogin.addEventListener("input", function(){
+    var digitos = campoCpfLogin.value.replace(/\D/g, "").slice(0, 11);
+    campoCpfLogin.value = formatarCpfVisual(digitos);
+  });
 
-    var usuario = campoUsuario.value.trim();
-    var senha = campoSenha.value.trim();
-    if (!usuario || !senha){
-      mostrarErroLogin("Preencha usuário e senha.");
+  // Passo 1: informar o CPF — decide se pede senha (CPF já cadastrado)
+  // ou manda pra tela de cadastro (CPF novo).
+  formularioCpf.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    esconderErroCpf();
+
+    var digitos = campoCpfLogin.value.replace(/\D/g, "");
+    if (!cpfValidoCliente(digitos)){
+      mostrarErroCpf("CPF inválido. Confira os números digitados.");
       return;
     }
     if (SCRIPT_URL.indexOf("COLE_AQUI") !== -1){
-      mostrarErroLogin("O app ainda não foi configurado: falta colar a URL do Apps Script no arquivo HTML.");
+      mostrarErroCpf("O app ainda não foi configurado: falta colar a URL do Apps Script no arquivo HTML.");
       return;
     }
 
-    botaoLogin.disabled = true;
-    botaoLogin.classList.add("carregando");
+    botaoContinuarCpf.disabled = true;
+    botaoContinuarCpf.classList.add("carregando");
 
-    var url = SCRIPT_URL + "?acao=login&usuario=" + encodeURIComponent(usuario) + "&senha=" + encodeURIComponent(senha);
+    var url = SCRIPT_URL + "?acao=verificarCpf&cpf=" + encodeURIComponent(digitos);
     jsonp(url, 10000,
       function(dados){
-        botaoLogin.disabled = false;
-        botaoLogin.classList.remove("carregando");
-        if (dados && dados.ok && dados.nome){
-          salvarSessao(dados.nome);
-          mostrarTelaPlacaView(dados.nome);
+        botaoContinuarCpf.disabled = false;
+        botaoContinuarCpf.classList.remove("carregando");
+        if (dados && dados.ok){
+          if (dados.existe) mostrarPassoSenha(digitos);
+          else mostrarPassoCadastro(digitos);
         } else {
-          mostrarErroLogin((dados && dados.error) || "Usuário ou senha inválidos.");
+          mostrarErroCpf((dados && dados.error) || "Não foi possível verificar esse CPF agora.");
         }
       },
       function(){
-        botaoLogin.disabled = false;
-        botaoLogin.classList.remove("carregando");
-        mostrarErroLogin("Não foi possível verificar agora. Verifique sua internet e tente novamente.");
+        botaoContinuarCpf.disabled = false;
+        botaoContinuarCpf.classList.remove("carregando");
+        mostrarErroCpf("Não foi possível verificar agora. Verifique sua internet e tente novamente.");
       }
+    );
+  });
+
+  botaoVoltarCpf.addEventListener("click", mostrarPassoCpf);
+  botaoVoltarCpfCadastro.addEventListener("click", mostrarPassoCpf);
+
+  // Passo 2: CPF já cadastrado — confere a senha (PIN).
+  formularioSenha.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    esconderErroSenha();
+
+    var pin = campoPinLogin.value.trim();
+    if (!pin){
+      mostrarErroSenha("Digite sua senha.");
+      return;
+    }
+
+    botaoEntrarSenha.disabled = true;
+    botaoEntrarSenha.classList.add("carregando");
+
+    var url = SCRIPT_URL + "?acao=loginCpf&cpf=" + encodeURIComponent(cpfAtual) + "&pin=" + encodeURIComponent(pin);
+    jsonp(url, 10000,
+      function(dados){
+        botaoEntrarSenha.disabled = false;
+        botaoEntrarSenha.classList.remove("carregando");
+        if (dados && dados.ok && dados.nome){
+          salvarSessao(cpfAtual, pin.replace(/\D/g, ""), dados.nome);
+          mostrarTelaPlacaView(dados.nome);
+        } else {
+          mostrarErroSenha((dados && dados.error) || "CPF ou senha inválidos.");
+        }
+      },
+      function(){
+        botaoEntrarSenha.disabled = false;
+        botaoEntrarSenha.classList.remove("carregando");
+        mostrarErroSenha("Não foi possível verificar agora. Verifique sua internet e tente novamente.");
+      }
+    );
+  });
+
+  // ============================================================
+  // Reconhecimento facial (cadastro) — abre a câmera frontal, deixa
+  // tirar uma foto (recorte quadrado a partir do centro do quadro) e
+  // guarda pra enviar junto do cadastro. Não faz nenhuma comparação
+  // de rosto — é só um registro visual, tirado na hora, junto do
+  // cadastro do motorista.
+  // ============================================================
+  function criarCapturaRosto(){
+    var estado = { foto: null, stream: null };
+
+    var wrap = document.createElement("div");
+    wrap.className = "captura-rosto";
+
+    var moldura = document.createElement("div");
+    moldura.className = "moldura";
+    wrap.appendChild(moldura);
+
+    var placeholder = document.createElement("div");
+    placeholder.className = "placeholder";
+    placeholder.innerHTML = '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.6"/><path d="M5 19c1.3-3.2 4-5 7-5s5.7 1.8 7 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+
+    var video = document.createElement("video");
+    video.setAttribute("autoplay", "");
+    video.setAttribute("muted", "");
+    video.setAttribute("playsinline", "");
+
+    var img = document.createElement("img");
+    img.alt = "Foto do cadastro";
+
+    var botoes = document.createElement("div");
+    botoes.className = "captura-botoes";
+    wrap.appendChild(botoes);
+
+    var status = document.createElement("div");
+    status.className = "status-captura";
+    wrap.appendChild(status);
+
+    var botaoLigar = document.createElement("button");
+    botaoLigar.type = "button";
+    botaoLigar.className = "principal";
+    botaoLigar.textContent = "Ligar câmera";
+
+    var botaoCapturar = document.createElement("button");
+    botaoCapturar.type = "button";
+    botaoCapturar.className = "principal";
+    botaoCapturar.textContent = "Tirar foto";
+
+    var botaoRefazer = document.createElement("button");
+    botaoRefazer.type = "button";
+    botaoRefazer.textContent = "Tirar novamente";
+
+    function pararCamera(){
+      if (estado.stream){
+        estado.stream.getTracks().forEach(function(t){ t.stop(); });
+        estado.stream = null;
+      }
+    }
+    function mostrarPlaceholder(){
+      moldura.innerHTML = "";
+      moldura.appendChild(placeholder);
+      botoes.innerHTML = "";
+      botoes.appendChild(botaoLigar);
+    }
+    function mostrarVideo(){
+      moldura.innerHTML = "";
+      moldura.appendChild(video);
+      botoes.innerHTML = "";
+      botoes.appendChild(botaoCapturar);
+    }
+    function mostrarFoto(){
+      moldura.innerHTML = "";
+      img.src = estado.foto.previewUrl;
+      moldura.appendChild(img);
+      botoes.innerHTML = "";
+      botoes.appendChild(botaoRefazer);
+    }
+
+    botaoLigar.addEventListener("click", function(){
+      status.textContent = "";
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+        status.textContent = "Esse navegador não permite acessar a câmera. Tente pelo Chrome ou Safari atualizados.";
+        return;
+      }
+      botaoLigar.disabled = true;
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
+        .then(function(stream){
+          botaoLigar.disabled = false;
+          estado.stream = stream;
+          video.srcObject = stream;
+          mostrarVideo();
+        })
+        .catch(function(){
+          botaoLigar.disabled = false;
+          status.textContent = "Não foi possível acessar a câmera. Verifique as permissões do navegador e tente novamente.";
+        });
+    });
+
+    botaoCapturar.addEventListener("click", function(){
+      var largura = video.videoWidth || 480;
+      var altura = video.videoHeight || 480;
+      var lado = Math.min(largura, altura);
+      var canvas = document.createElement("canvas");
+      canvas.width = 480;
+      canvas.height = 480;
+      canvas.getContext("2d").drawImage(
+        video,
+        (largura - lado) / 2, (altura - lado) / 2, lado, lado,
+        0, 0, 480, 480
+      );
+      var dataUrl = canvas.toDataURL("image/jpeg", QUALIDADE_JPEG);
+      estado.foto = {
+        filename: "foto-cadastro.jpg",
+        mimeType: "image/jpeg",
+        base64: dataUrl.split(",")[1],
+        previewUrl: dataUrl
+      };
+      pararCamera();
+      mostrarFoto();
+    });
+
+    botaoRefazer.addEventListener("click", function(){
+      estado.foto = null;
+      mostrarPlaceholder();
+      botaoLigar.click();
+    });
+
+    mostrarPlaceholder();
+
+    return {
+      elemento: wrap,
+      temFoto: function(){ return !!estado.foto; },
+      obterFoto: function(){ return estado.foto; },
+      pararCamera: pararCamera,
+      reiniciar: function(){ pararCamera(); estado.foto = null; mostrarPlaceholder(); }
+    };
+  }
+
+  var capturaRosto = criarCapturaRosto();
+  capturaRostoWrap.appendChild(capturaRosto.elemento);
+
+  // Passo 3: CPF novo — cadastro completo (nome + CPF + senha + foto).
+  formularioCadastro.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    esconderErroCadastro();
+
+    var nome = campoNomeCadastro.value.trim();
+    var pin = campoPinCadastro.value.trim();
+    var pinConfirmar = campoPinCadastroConfirmar.value.trim();
+
+    if (!nome){
+      mostrarErroCadastro("Informe seu nome completo.");
+      return;
+    }
+    if (!/^\d{4,6}$/.test(pin)){
+      mostrarErroCadastro("A senha deve ter entre 4 e 6 números.");
+      return;
+    }
+    if (pin !== pinConfirmar){
+      mostrarErroCadastro("As duas senhas digitadas são diferentes.");
+      return;
+    }
+    if (!capturaRosto.temFoto()){
+      mostrarErroCadastro("Tire a foto do reconhecimento facial antes de continuar.");
+      return;
+    }
+
+    botaoCadastrar.disabled = true;
+    botaoCadastrar.classList.add("carregando");
+
+    function enviarCadastro(){
+      var payload = {
+        formulario: "cadastroMotorista",
+        nome: nome,
+        cpf: cpfAtual,
+        pin: pin,
+        foto: capturaRosto.obterFoto()
+      };
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      })
+      .then(function(){
+        capturaRosto.pararCamera();
+        salvarSessao(cpfAtual, pin, nome);
+        mostrarTelaPlacaView(nome);
+      })
+      .catch(function(){
+        mostrarErroCadastro("Não foi possível enviar seu cadastro agora. Verifique sua internet e tente novamente.");
+      })
+      .finally(function(){
+        botaoCadastrar.disabled = false;
+        botaoCadastrar.classList.remove("carregando");
+      });
+    }
+
+    // Confere de novo, na hora, se ninguém cadastrou esse CPF nesse
+    // meio-tempo (outro aparelho, por exemplo) antes de gravar.
+    var urlChecagem = SCRIPT_URL + "?acao=verificarCpf&cpf=" + encodeURIComponent(cpfAtual);
+    jsonp(urlChecagem, 10000,
+      function(dadosChecagem){
+        if (dadosChecagem && dadosChecagem.ok && dadosChecagem.existe){
+          botaoCadastrar.disabled = false;
+          botaoCadastrar.classList.remove("carregando");
+          mostrarErroCadastro('Esse CPF já foi cadastrado. Toque em "Trocar CPF" e entre com sua senha.');
+          return;
+        }
+        enviarCadastro();
+      },
+      enviarCadastro
     );
   });
 
   function sair(){
     limparSessao();
-    campoUsuario.value = "";
     mostrarTelaLogin();
   }
   botaoSairPlaca.addEventListener("click", sair);
