@@ -314,6 +314,7 @@
     line-height:1.5;
   }
   .erro-msg.mostrar{ display:block; }
+  .erro-msg.aviso-rascunho{ background:var(--verde-claro); color:var(--verde-escuro); }
 
   .ajuda-login{
     font-size:12.5px;
@@ -321,6 +322,18 @@
     line-height:1.5;
     margin:2px 4px 0;
   }
+
+  /* ---------- "Minhas solicitações" ---------- */
+  .lista-minhas{ display:flex; flex-direction:column; gap:10px; }
+  .item-minha{ background:var(--card); border:1px solid var(--borda); border-radius:14px; padding:14px 16px; box-shadow:var(--sombra); }
+  .item-minha .topo-item{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .item-minha .placa-item{ font-weight:800; font-size:15px; letter-spacing:.02em; }
+  .item-minha .data-item{ font-size:12px; color:var(--texto-suave); margin-top:2px; }
+  .item-minha .descricao-item{ margin-top:8px; font-size:13px; color:var(--texto-suave); line-height:1.4; }
+  .item-minha .extra-item{ margin-top:8px; font-size:12.5px; color:var(--texto-suave); }
+  .badge-status{ font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; white-space:nowrap; flex:none; }
+  .voltar-minhas{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:700; color:var(--texto-suave); margin-bottom:16px; background:none; border:none; cursor:pointer; padding:0; font-family:inherit; }
+  .vazio-minhas, .carregando-minhas{ text-align:center; padding:40px 16px; color:var(--texto-suave); font-size:14px; }
 
   /* Popup de sucesso */
   .modal-overlay{
@@ -433,8 +446,13 @@
         <span class="rotulo">Motorista</span>
         <span class="nome" id="nomeMotoristaLogado">–</span>
       </div>
-      <button type="button" class="botao-sair" id="botaoSair">Sair</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="botao-sair" id="botaoMinhasSolicitacoes">Minhas solicitações</button>
+        <button type="button" class="botao-sair" id="botaoSair">Sair</button>
+      </div>
     </div>
+
+    <div class="erro-msg aviso-rascunho" id="avisoRascunho" style="margin-bottom:-4px">Recuperamos o que você tinha preenchido antes de sair. Confira os dados e continue de onde parou.</div>
 
     <form id="formulario" novalidate>
 
@@ -506,6 +524,18 @@
 
   </div>
 
+  <!-- ===================== TELA: MINHAS SOLICITAÇÕES ===================== -->
+  <div id="telaMinhas" style="display:none">
+    <button type="button" class="voltar-minhas" id="botaoVoltarMinhas">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 5l-7 7 7 7" stroke="#5B6B62" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Voltar ao formulário
+    </button>
+    <div class="carregando-minhas" id="carregandoMinhas" style="display:none">Carregando suas solicitações…</div>
+    <div class="erro-msg" id="erroMinhas"></div>
+    <div class="vazio-minhas" id="vazioMinhas" style="display:none">Você ainda não enviou nenhuma solicitação.</div>
+    <div class="lista-minhas" id="listaMinhas"></div>
+  </div>
+
 </div>
 
 <div class="modal-overlay" id="modalSucesso">
@@ -564,6 +594,7 @@
   var subtituloTela = document.getElementById("subtituloTela");
   var telaLogin = document.getElementById("telaLogin");
   var telaFormulario = document.getElementById("telaFormulario");
+  var telaMinhas = document.getElementById("telaMinhas");
 
   // ---------- elementos: login ----------
   var formularioLogin = document.getElementById("formularioLogin");
@@ -575,6 +606,8 @@
   // ---------- elementos: formulário de manutenção ----------
   var nomeMotoristaLogado = document.getElementById("nomeMotoristaLogado");
   var botaoSair = document.getElementById("botaoSair");
+  var botaoMinhasSolicitacoes = document.getElementById("botaoMinhasSolicitacoes");
+  var avisoRascunho = document.getElementById("avisoRascunho");
   var form = document.getElementById("formulario");
   var campoTipo = document.getElementById("tipo");
   var outroWrap = document.getElementById("outroWrap");
@@ -593,9 +626,17 @@
   var modalErroTexto = document.getElementById("modalErroTexto");
   var botaoFecharModalErro = document.getElementById("botaoFecharModalErro");
 
+  // ---------- elementos: minhas solicitações ----------
+  var botaoVoltarMinhas = document.getElementById("botaoVoltarMinhas");
+  var carregandoMinhas = document.getElementById("carregandoMinhas");
+  var erroMinhas = document.getElementById("erroMinhas");
+  var vazioMinhas = document.getElementById("vazioMinhas");
+  var listaMinhas = document.getElementById("listaMinhas");
+
   var fotos = []; // { filename, mimeType, base64, previewUrl }
   var dataAtualISO = "";
   var timerFechamentoModal = null;
+  var restaurandoRascunho = false; // evita salvar o rascunho de volta enquanto ele está sendo restaurado
 
   // ============================================================
   // JSONP genérico: usado para o login e para conferir a placa. Uma
@@ -651,8 +692,11 @@
       return (sessao && sessao.nome) ? sessao : null;
     } catch(e){ return null; }
   }
-  function salvarSessao(nome){
-    try { localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ nome: nome, desde: Date.now() })); } catch(e){}
+  // Guarda usuário e senha (além do nome) pra poder buscar "Minhas
+  // solicitações" sem pedir login de novo a cada vez — mesmo padrão já
+  // usado no painel de gestão e na ficha de veículos.
+  function salvarSessao(usuario, senha, nome){
+    try { localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ usuario: usuario, senha: senha, nome: nome, desde: Date.now() })); } catch(e){}
   }
   function limparSessao(){
     try { localStorage.removeItem(CHAVE_SESSAO); } catch(e){}
@@ -661,6 +705,7 @@
   function mostrarTelaLogin(){
     telaLogin.style.display = "";
     telaFormulario.style.display = "none";
+    telaMinhas.style.display = "none";
     tituloTela.textContent = "Entrar";
     subtituloTela.textContent = "Faça login para registrar uma manutenção de veículo.";
     campoSenha.value = "";
@@ -669,8 +714,17 @@
     nomeMotoristaLogado.textContent = nome;
     telaLogin.style.display = "none";
     telaFormulario.style.display = "";
+    telaMinhas.style.display = "none";
     tituloTela.textContent = "Reporte de Manutenção de Veículo";
     subtituloTela.textContent = "Preencha os dados abaixo e anexe fotos do problema.";
+  }
+  function mostrarTelaMinhas(){
+    telaLogin.style.display = "none";
+    telaFormulario.style.display = "none";
+    telaMinhas.style.display = "";
+    tituloTela.textContent = "Minhas solicitações";
+    subtituloTela.textContent = "Acompanhe o status do que você já enviou.";
+    carregarMinhasSolicitacoes();
   }
 
   function mostrarErroLogin(texto){
@@ -705,8 +759,9 @@
         botaoLogin.disabled = false;
         botaoLogin.classList.remove("carregando");
         if (dados && dados.ok && dados.nome){
-          salvarSessao(dados.nome);
+          salvarSessao(usuario, senha, dados.nome);
           mostrarTelaFormulario(dados.nome);
+          restaurarRascunhoSeExistir();
         } else {
           mostrarErroLogin((dados && dados.error) || "Usuário ou senha inválidos.");
         }
@@ -724,6 +779,118 @@
     campoUsuario.value = "";
     mostrarTelaLogin();
   });
+
+  botaoMinhasSolicitacoes.addEventListener("click", mostrarTelaMinhas);
+  botaoVoltarMinhas.addEventListener("click", function(){
+    var sessao = obterSessao();
+    mostrarTelaFormulario(sessao ? sessao.nome : "–");
+  });
+
+  // ============================================================
+  // Minhas solicitações: mostra pro próprio motorista o status do que
+  // ele já enviou, sem precisar perguntar pra gestão. Sessões salvas
+  // ANTES dessa atualização não têm usuário/senha guardados (só o
+  // nome) — nesse caso pede pra entrar de novo, só dessa vez.
+  // ============================================================
+  var STATUS_INFO_MINHAS = {
+    novo: { bg: "#E8F1FA", texto: "#2A6FB0", rotulo: "Aguardando triagem" },
+    em_andamento: { bg: "#FBF3E1", texto: "#8A661A", rotulo: "Em andamento" },
+    concluido: { bg: "#E7F3EC", texto: "#14532d", rotulo: "Concluída" },
+    cancelado: { bg: "#FBEAE7", texto: "#C24A3B", rotulo: "Cancelada" }
+  };
+
+  function carregarMinhasSolicitacoes(){
+    var sessao = obterSessao();
+    if (!sessao){ mostrarTelaLogin(); return; }
+
+    carregandoMinhas.style.display = "block";
+    erroMinhas.classList.remove("mostrar");
+    vazioMinhas.style.display = "none";
+    listaMinhas.innerHTML = "";
+
+    if (!sessao.usuario || !sessao.senha){
+      carregandoMinhas.style.display = "none";
+      erroMinhas.textContent = "Por segurança, entre novamente pra gente conseguir buscar suas solicitações.";
+      erroMinhas.classList.add("mostrar");
+      return;
+    }
+
+    var url = SCRIPT_URL + "?acao=listarMinhasSolicitacoes" +
+      "&usuario=" + encodeURIComponent(sessao.usuario) +
+      "&senha=" + encodeURIComponent(sessao.senha);
+
+    jsonp(url, 12000,
+      function(dados){
+        carregandoMinhas.style.display = "none";
+        if (dados && dados.ok){
+          renderizarMinhasSolicitacoes(dados.solicitacoes || []);
+        } else {
+          erroMinhas.textContent = (dados && dados.error) || "Não foi possível carregar suas solicitações.";
+          erroMinhas.classList.add("mostrar");
+        }
+      },
+      function(){
+        carregandoMinhas.style.display = "none";
+        erroMinhas.textContent = "Sem conexão agora. Tente novamente.";
+        erroMinhas.classList.add("mostrar");
+      }
+    );
+  }
+
+  function renderizarMinhasSolicitacoes(lista){
+    listaMinhas.innerHTML = "";
+    if (!lista.length){
+      vazioMinhas.style.display = "block";
+      return;
+    }
+    vazioMinhas.style.display = "none";
+
+    lista.forEach(function(item){
+      var info = STATUS_INFO_MINHAS[item.status] || STATUS_INFO_MINHAS.novo;
+      var el = document.createElement("div");
+      el.className = "item-minha";
+
+      var topo = document.createElement("div");
+      topo.className = "topo-item";
+      topo.innerHTML =
+        '<div><div class="placa-item">' + escaparHtmlMinhas(item.placa || "Sem placa") + '</div>' +
+        '<div class="data-item">' + escaparHtmlMinhas(item.dataHoraEnvio || "") + (item.tipo ? " · " + escaparHtmlMinhas(item.tipo) : "") + '</div></div>' +
+        '<span class="badge-status" style="background:' + info.bg + ';color:' + info.texto + '">' + info.rotulo + '</span>';
+      el.appendChild(topo);
+
+      if (item.descricao){
+        var descricao = document.createElement("div");
+        descricao.className = "descricao-item";
+        descricao.textContent = item.descricao;
+        el.appendChild(descricao);
+      }
+
+      if (item.status === "em_andamento" && (item.prestador || item.prazoDataLimite)){
+        var extra = document.createElement("div");
+        extra.className = "extra-item";
+        var partes = [];
+        if (item.prestador) partes.push("Prestador: " + item.prestador);
+        if (item.prazoDataLimite) partes.push("Prazo: " + item.prazoDataLimite);
+        extra.textContent = partes.join(" · ");
+        el.appendChild(extra);
+      }
+
+      if (item.status === "cancelado" && item.motivoRejeicao){
+        var motivo = document.createElement("div");
+        motivo.className = "extra-item";
+        motivo.textContent = "Motivo: " + item.motivoRejeicao;
+        el.appendChild(motivo);
+      }
+
+      listaMinhas.appendChild(el);
+    });
+  }
+
+  function escaparHtmlMinhas(texto){
+    var div = document.createElement("div");
+    div.textContent = String(texto == null ? "" : texto);
+    return div.innerHTML;
+  }
 
   // ============================================================
   // Placa: o motorista digita, não escolhe de uma lista. O campo só
@@ -773,12 +940,82 @@
   atualizarData();
 
   // ============================================================
+  // Rascunho automático: guarda o que o motorista já preencheu (placa,
+  // km, tipo, descrição e as fotos já comprimidas) pra não perder nada
+  // se a internet cair ou a página fechar sem querer antes de enviar.
+  // Fica só neste aparelho, e é apagado assim que a solicitação é
+  // enviada com sucesso.
+  // ============================================================
+  var CHAVE_RASCUNHO = "cva_rascunho_manutencao_v1";
+  var timerSalvarRascunho = null;
+
+  function salvarRascunho(){
+    if (restaurandoRascunho) return;
+    try {
+      var rascunho = {
+        placa: campoPlaca.value,
+        km: document.getElementById("km").value,
+        tipo: campoTipo.value,
+        tipoOutro: campoTipoOutro.value,
+        descricao: document.getElementById("descricao").value,
+        fotos: fotos,
+        salvoEm: Date.now()
+      };
+      localStorage.setItem(CHAVE_RASCUNHO, JSON.stringify(rascunho));
+    } catch(e){
+      // localStorage cheio (fotos grandes) ou indisponível — sem
+      // problema, só não guarda o rascunho dessa vez.
+    }
+  }
+  function salvarRascunhoComAtraso(){
+    if (timerSalvarRascunho) clearTimeout(timerSalvarRascunho);
+    timerSalvarRascunho = setTimeout(salvarRascunho, 600);
+  }
+  function limparRascunho(){
+    try { localStorage.removeItem(CHAVE_RASCUNHO); } catch(e){}
+    avisoRascunho.classList.remove("mostrar");
+  }
+  function restaurarRascunhoSeExistir(){
+    var bruto;
+    try { bruto = localStorage.getItem(CHAVE_RASCUNHO); } catch(e){ bruto = null; }
+    if (!bruto) return;
+    var rascunho;
+    try { rascunho = JSON.parse(bruto); } catch(e){ rascunho = null; }
+    if (!rascunho) return;
+
+    restaurandoRascunho = true;
+    if (rascunho.placa) campoPlaca.value = rascunho.placa;
+    if (rascunho.km) document.getElementById("km").value = rascunho.km;
+    if (rascunho.tipo){
+      campoTipo.value = rascunho.tipo;
+      var mostrarOutro = rascunho.tipo === "Outro";
+      outroWrap.classList.toggle("mostrar", mostrarOutro);
+      campoTipoOutro.required = mostrarOutro;
+    }
+    if (rascunho.tipoOutro) campoTipoOutro.value = rascunho.tipoOutro;
+    if (rascunho.descricao) document.getElementById("descricao").value = rascunho.descricao;
+    if (rascunho.fotos && rascunho.fotos.length){
+      fotos = rascunho.fotos;
+      renderizarFotos();
+    }
+    restaurandoRascunho = false;
+
+    avisoRascunho.classList.add("mostrar");
+  }
+
+  [campoPlaca, document.getElementById("km"), campoTipoOutro, document.getElementById("descricao")].forEach(function(campo){
+    campo.addEventListener("input", salvarRascunhoComAtraso);
+  });
+  campoTipo.addEventListener("change", salvarRascunhoComAtraso);
+
+  // ============================================================
   // Inicialização: se já existe sessão salva neste aparelho, pula
   // direto para o formulário. Senão, mostra a tela de login.
   // ============================================================
   var sessaoInicial = obterSessao();
   if (sessaoInicial){
     mostrarTelaFormulario(sessaoInicial.nome);
+    restaurarRascunhoSeExistir();
   } else {
     mostrarTelaLogin();
   }
@@ -862,6 +1099,7 @@
       item.appendChild(remover);
       fotosGrid.appendChild(item);
     });
+    salvarRascunho();
   }
 
   function mostrarErro(texto){
@@ -880,6 +1118,7 @@
     campoTipoOutro.required = false;
     atualizarData();
     esconderErro();
+    limparRascunho();
   }
 
   function abrirModalSucesso(){
