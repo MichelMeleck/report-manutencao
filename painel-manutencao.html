@@ -680,7 +680,8 @@
     <div class="linha-detalhe" id="modalPrazoWrap" style="display:none"><span class="rotulo">Prazo estimado</span><span class="valor" id="modalPrazo">–</span></div>
     <div class="linha-detalhe" id="modalAtualizadoPorWrap" style="display:none"><span class="rotulo">Atualizado por</span><span class="valor" id="modalAtualizadoPor">–</span></div>
     <div class="linha-detalhe" id="modalPrestadorWrap" style="display:none"><span class="rotulo">Fornecedor</span><span class="valor" id="modalPrestador">–</span></div>
-    <div class="linha-detalhe" id="modalResolucaoWrap" style="display:none"><span class="rotulo">Diagnóstico / Resolução</span><span class="valor" id="modalResolucao">–</span></div>
+    <div class="linha-detalhe" id="modalDiagnosticoWrap" style="display:none"><span class="rotulo">Diagnóstico</span><span class="valor" id="modalDiagnostico">–</span></div>
+    <div class="linha-detalhe" id="modalResolucaoWrap" style="display:none"><span class="rotulo">Resolução</span><span class="valor" id="modalResolucao">–</span></div>
     <div class="linha-detalhe" id="modalMotivoRejeicaoWrap" style="display:none"><span class="rotulo">Motivo do cancelamento</span><span class="valor" id="modalMotivoRejeicao">–</span></div>
 
     <div id="modalFotosWrap" style="display:none">
@@ -778,8 +779,12 @@
       <button type="button" class="fechar-modal" id="fecharModalConclusao" aria-label="Fechar">✕</button>
     </div>
     <div class="campo-simples">
-      <label for="diagnosticoConclusaoInput">Diagnóstico e como foi resolvido</label>
-      <textarea id="diagnosticoConclusaoInput" placeholder="Ex: Troca da pastilha de freio dianteira — desgaste identificado na revisão."></textarea>
+      <label for="diagnosticoConclusaoInput">Diagnóstico</label>
+      <textarea id="diagnosticoConclusaoInput" placeholder="Ex: Desgaste na pastilha de freio dianteira, identificado na revisão."></textarea>
+    </div>
+    <div class="campo-simples" style="margin-top:8px">
+      <label for="resolucaoConclusaoInput">Resolução</label>
+      <textarea id="resolucaoConclusaoInput" placeholder="Ex: Troca das pastilhas e discos dianteiros."></textarea>
     </div>
     <div class="aviso-modal" id="diagnosticoConclusaoAviso">Informe o diagnóstico e a resolução para concluir.</div>
     <button type="button" class="botao-mover botao-aceitar" id="botaoConfirmarConclusao" style="margin-top:12px;width:100%">Confirmar conclusão</button>
@@ -857,6 +862,8 @@
   var modalAtualizadoPor = document.getElementById("modalAtualizadoPor");
   var modalPrestadorWrap = document.getElementById("modalPrestadorWrap");
   var modalPrestador = document.getElementById("modalPrestador");
+  var modalDiagnosticoWrap = document.getElementById("modalDiagnosticoWrap");
+  var modalDiagnostico = document.getElementById("modalDiagnostico");
   var modalResolucaoWrap = document.getElementById("modalResolucaoWrap");
   var modalResolucao = document.getElementById("modalResolucao");
   var modalMotivoRejeicaoWrap = document.getElementById("modalMotivoRejeicaoWrap");
@@ -900,6 +907,7 @@
   var modalConclusao = document.getElementById("modalConclusao");
   var fecharModalConclusaoBtn = document.getElementById("fecharModalConclusao");
   var diagnosticoConclusaoInput = document.getElementById("diagnosticoConclusaoInput");
+  var resolucaoConclusaoInput = document.getElementById("resolucaoConclusaoInput");
   var diagnosticoConclusaoAviso = document.getElementById("diagnosticoConclusaoAviso");
   var botaoConfirmarConclusao = document.getElementById("botaoConfirmarConclusao");
 
@@ -1423,6 +1431,13 @@
       modalPrestadorWrap.style.display = "none";
     }
 
+    if (item.diagnostico){
+      modalDiagnosticoWrap.style.display = "flex";
+      modalDiagnostico.textContent = item.diagnostico;
+    } else {
+      modalDiagnosticoWrap.style.display = "none";
+    }
+
     if (item.resolucao){
       modalResolucaoWrap.style.display = "flex";
       modalResolucao.textContent = item.resolucao;
@@ -1692,7 +1707,7 @@
   // arrastar-e-soltar dos cards. Só faz a chamada; quem decide o que
   // mostrar na tela é moverComOtimismo, logo abaixo.
   // ============================================================
-  function moverSolicitacaoNoServidor(id, novoStatus, motivo, resolucao, callback){
+  function moverSolicitacaoNoServidor(id, novoStatus, motivo, diagnostico, resolucao, callback){
     var sessao = obterSessaoPainel();
     if (!sessao){ callback(false, "Sessão expirada. Entre novamente."); return; }
 
@@ -1702,6 +1717,7 @@
       "&id=" + encodeURIComponent(id) +
       "&status=" + encodeURIComponent(novoStatus) +
       "&motivo=" + encodeURIComponent(motivo || "") +
+      "&diagnostico=" + encodeURIComponent(diagnostico || "") +
       "&resolucao=" + encodeURIComponent(resolucao || "");
 
     jsonp(url, 12000,
