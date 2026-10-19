@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reporte de Manutenção – Cheiro Verde Ambiental</title>
+<meta name="description" content="Formulário para motoristas reportarem manutenção de veículos, com fotos.">
+<meta name="theme-color" content="#1F7A4D">
+
+<!-- ============================================================
+     Informações que aparecem no card de pré-visualização quando
+     esse link é compartilhado (WhatsApp, Telegram, etc.). Se você
+     trocar o endereço do site, ajuste "og:url" e "og:image" abaixo
+     para o link completo (com https://) de cada arquivo.
+     ============================================================ -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Cheiro Verde Ambiental">
+<meta property="og:title" content="Manutenção de Veículos – CVA">
+<meta property="og:description" content="Registre solicitações de manutenção da frota, com fotos, direto pelo celular.">
+<meta property="og:url" content="https://michelmeleck.github.io/report-manutencao/">
+<meta property="og:image" content="https://michelmeleck.github.io/report-manutencao/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Manutenção de Veículos – CVA">
+<meta name="twitter:description" content="Registre solicitações de manutenção da frota, com fotos, direto pelo celular.">
+<meta name="twitter:image" content="https://michelmeleck.github.io/report-manutencao/og-image.png">
+
+<!-- ============================================================
+     Deixa o site instalável como app no celular (PWA): ícone na
+     tela inicial, abre em tela cheia sem a barra do navegador.
+     Precisa dos arquivos manifest.json, sw.js, icon-192.png,
+     icon-512.png e icon-512-maskable.png no mesmo repositório.
+     ============================================================ -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Manutenção CVA">
+<meta name="mobile-web-app-capable" content="yes">
+
+<style>
+  :root{
+    --verde:#1F7A4D;
+    --verde-escuro:#14532d;
+    --verde-claro:#E7F3EC;
+    --bg:#F6F8F6;
+    --card:#FFFFFF;
+    --texto:#1B2420;
+    --texto-suave:#5B6B62;
+    --borda:#DCE5DE;
+    --erro:#C24A3B;
+    --erro-claro:#FBEAE7;
+    --sombra:0 1px 3px rgba(27,36,32,.08), 0 6px 16px rgba(27,36,32,.06);
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#111813;
+      --card:#1A221C;
+      --texto:#EAF1EC;
+      --texto-suave:#9FB0A5;
+      --borda:#2A362C;
+      --verde-claro:#1C2C21;
+      --erro-claro:#301F1D;
+      --sombra:0 1px 3px rgba(0,0,0,.5), 0 6px 16px rgba(0,0,0,.35);
+    }
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg);
+    color:var(--texto);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:0 16px;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    min-height:100%;
+  }
+  .wrap{ max-width:520px; margin:0 auto; padding-bottom:48px; }
+
+  header{
+    padding-top:28px;
+    padding-bottom:20px;
+  }
+  .marca{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .marca .selo{
+    width:38px; height:38px; border-radius:10px;
+    background:var(--verde);
+    display:flex; align-items:center; justify-content:center;
+    flex:none;
+  }
+  .marca .selo svg{ width:20px; height:20px; }
+  .marca .nome{
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.02em;
+    color:var(--texto-suave);
+    text-transform:uppercase;
+  }
+  h1{
+    font-size:24px;
+    line-height:1.25;
+    margin:0 0 6px;
+    text-wrap:balance;
+  }
+  .sub{
+    color:var(--texto-suave);
+    font-size:14.5px;
+    line-height:1.5;
+    margin:0;
+  }
+
+  form{ display:flex; flex-direction:column; gap:16px; }
+
+  .campo{
+    background:var(--card);
+    border:1px solid var(--borda);
+    border-radius:14px;
+    padding:14px 16px;
+    box-shadow:var(--sombra);
+  }
+  .campo label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    color:var(--texto-suave);
+    margin-bottom:8px;
+  }
+  .campo label .obrig{ color:var(--erro); }
+  .duas-colunas{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  @media (max-width:420px){
+    .duas-colunas{ grid-template-columns:1fr; }
+  }
+
+  input[type=text],
+  input[type=number],
+  input[type=password],
+  select,
+  textarea{
+    width:100%;
+    font-size:16px;
+    font-family:inherit;
+    color:var(--texto);
+    background:transparent;
+    border:none;
+    padding:6px 0 2px;
+    outline:none;
+  }
+  textarea{ resize:vertical; min-height:84px; line-height:1.5; }
+  select{ appearance:none; -webkit-appearance:none; background:transparent; }
+  .select-wrap{ position:relative; }
+  .select-wrap::after{
+    content:"";
+    position:absolute; right:2px; top:50%; transform:translateY(-60%);
+    width:9px; height:9px;
+    border-right:2px solid var(--texto-suave);
+    border-bottom:2px solid var(--texto-suave);
+    transform-origin:center;
+    rotate:45deg;
+    pointer-events:none;
+  }
+  input:focus, select:focus, textarea:focus{ outline:none; }
+  .campo:focus-within{ border-color:var(--verde); }
+
+  #placa{
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* Data fixa (não editável) */
+  .campo-estatico{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:16px;
+    padding:6px 0 2px;
+    color:var(--texto);
+    font-variant-numeric:tabular-nums;
+  }
+  .campo-estatico svg{ flex:none; color:var(--texto-suave); }
+
+  .outro-wrap{ margin-top:10px; display:none; }
+  .outro-wrap.mostrar{ display:block; }
+  .outro-wrap input{ border-top:1px solid var(--borda); padding-top:10px; }
+
+  /* Cartão do motorista logado */
+  .cartao-usuario{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .cartao-usuario .info{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .cartao-usuario .rotulo{
+    font-size:12px;
+    font-weight:600;
+    color:var(--texto-suave);
+    text-transform:uppercase;
+    letter-spacing:.02em;
+  }
+  .cartao-usuario .nome{
+    font-size:16.5px;
+    font-weight:700;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .botao-sair{
+    flex:none;
+    background:none;
+    border:1px solid var(--borda);
+    color:var(--texto-suave);
+    font-size:13px;
+    font-weight:700;
+    padding:8px 14px;
+    border-radius:10px;
+    cursor:pointer;
+  }
+  .botao-sair:active{ background:var(--verde-claro); }
+
+  /* Fotos */
+  .fotos-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(84px,1fr));
+    gap:8px;
+    margin-top:10px;
+  }
+  .foto-item{
+    position:relative;
+    aspect-ratio:1;
+    border-radius:10px;
+    overflow:hidden;
+    background:var(--verde-claro);
+  }
+  .foto-item img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .foto-item button{
+    position:absolute; top:4px; right:4px;
+    width:22px; height:22px;
+    border-radius:50%;
+    border:none;
+    background:rgba(20,20,20,.65);
+    color:#fff;
+    font-size:13px;
+    line-height:1;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .botao-foto{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%;
+    padding:14px;
+    border-radius:10px;
+    border:1.5px dashed var(--borda);
+    background:var(--verde-claro);
+    color:var(--verde-escuro);
+    font-weight:600;
+    font-size:14.5px;
+    cursor:pointer;
+  }
+  .fotos-legenda{
+    font-size:12px;
+    color:var(--texto-suave);
+    margin-top:8px;
+  }
+  input[type=file]{ display:none; }
+
+  button.enviar{
+    width:100%;
+    padding:16px;
+    border:none;
+    border-radius:14px;
+    background:var(--verde);
+    color:#fff;
+    font-size:16px;
+    font-weight:700;
+    letter-spacing:.01em;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+  }
+  button.enviar:active{ background:var(--verde-escuro); }
+  button.enviar:disabled{ opacity:.6; cursor:default; }
+
+  .spinner{
+    width:16px; height:16px;
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,.4);
+    border-top-color:#fff;
+    animation:girar .7s linear infinite;
+    display:none;
+  }
+  button.enviar.carregando .spinner{ display:inline-block; }
+  button.enviar.carregando .rotulo-normal{ display:none; }
+  @keyframes girar{ to{ transform:rotate(360deg); } }
+
+  .erro-msg{
+    display:none;
+    background:var(--erro-claro);
+    color:var(--erro);
+    border-radius:12px;
+    padding:12px 14px;
+    font-size:13.5px;
+    line-height:1.5;
+  }
+  .erro-msg.mostrar{ display:block; }
+  .erro-msg.aviso-rascunho{ background:var(--verde-claro); color:var(--verde-escuro); }
+
+  .ajuda-login{
+    font-size:12.5px;
+    color:var(--texto-suave);
+    line-height:1.5;
+    margin:2px 4px 0;
+  }
+
+  /* ---------- Login por CPF: passo a passo e captura de rosto ---------- */
+  .voltar-login{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:13px; font-weight:700; color:var(--texto-suave);
+    margin-bottom:6px; background:none; border:none; cursor:pointer;
+    padding:0; font-family:inherit;
+  }
+  .captura-rosto{
+    display:flex; flex-direction:column; align-items:center; gap:12px;
+    padding:16px; margin-top:10px;
+    border:1.5px dashed var(--borda); border-radius:14px; background:var(--verde-claro);
+  }
+  .captura-rosto .moldura{
+    width:170px; height:170px; border-radius:50%; overflow:hidden; flex:none;
+    background:rgba(0,0,0,.08); border:3px solid var(--verde);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .captura-rosto video, .captura-rosto img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .captura-rosto .placeholder{ color:var(--verde-escuro); opacity:.55; }
+  .captura-rosto .captura-botoes{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  .captura-rosto button{
+    padding:10px 16px; border-radius:10px; border:1.5px solid var(--verde);
+    background:var(--card); color:var(--verde-escuro); font-weight:700; font-size:13.5px; cursor:pointer;
+  }
+  .captura-rosto button.principal{ background:var(--verde); color:#fff; }
+  .captura-rosto .status-captura{ font-size:12.5px; color:var(--texto-suave); text-align:center; line-height:1.4; }
+
+  /* ---------- "Minhas solicitações" ---------- */
+  .lista-minhas{ display:flex; flex-direction:column; gap:10px; }
+  .item-minha{ background:var(--card); border:1px solid var(--borda); border-radius:14px; padding:14px 16px; box-shadow:var(--sombra); }
+  .item-minha .topo-item{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .item-minha .placa-item{ font-weight:800; font-size:15px; letter-spacing:.02em; }
+  .item-minha .data-item{ font-size:12px; color:var(--texto-suave); margin-top:2px; }
+  .item-minha .descricao-item{ margin-top:8px; font-size:13px; color:var(--texto-suave); line-height:1.4; }
+  .item-minha .extra-item{ margin-top:8px; font-size:12.5px; color:var(--texto-suave); }
+  .badge-status{ font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; white-space:nowrap; flex:none; }
+  .voltar-minhas{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:700; color:var(--texto-suave); margin-bottom:16px; background:none; border:none; cursor:pointer; padding:0; font-family:inherit; }
+  .vazio-minhas, .carregando-minhas{ text-align:center; padding:40px 16px; color:var(--texto-suave); font-size:14px; }
+
+  /* Popup de sucesso */
+  .modal-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(15,20,17,.55);
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    z-index:1000;
+  }
+  .modal-overlay.mostrar{ display:flex; }
+  .modal-card{
+    background:var(--card);
+    border-radius:20px;
+    padding:32px 26px 26px;
+    max-width:320px;
+    width:100%;
+    text-align:center;
+    box-shadow:0 12px 32px rgba(0,0,0,.25);
+    animation:aparecer .22s ease-out;
+  }
+  @keyframes aparecer{
+    from{ opacity:0; transform:scale(.92) translateY(6px); }
+    to{ opacity:1; transform:scale(1) translateY(0); }
+  }
+  .modal-card .icone{
+    width:60px; height:60px;
+    border-radius:50%;
+    background:var(--verde-claro);
+    color:var(--verde);
+    display:flex; align-items:center; justify-content:center;
+    margin:0 auto 18px;
+  }
+  .modal-card .icone.icone-erro{
+    background:var(--erro-claro);
+    color:var(--erro);
+  }
+  .modal-card button.botao-secundario{
+    background:none;
+    border:1px solid var(--borda);
+    color:var(--texto);
+  }
+  .modal-card h2{ margin:0 0 8px; font-size:19px; }
+  .modal-card p{ color:var(--texto-suave); font-size:14px; line-height:1.5; margin:0 0 22px; }
+  .modal-card button{
+    padding:12px 22px;
+    border-radius:12px;
+    border:none;
+    background:var(--verde);
+    color:#fff;
+    font-weight:700;
+    font-size:14.5px;
+    cursor:pointer;
+    width:100%;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .spinner{ animation:none; }
+    .modal-card{ animation:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="marca">
+      <span class="selo">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 13l1.6-5.2A2 2 0 0 1 6.5 6.3h11a2 2 0 0 1 1.9 1.4L21 13v6a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-1H6v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
+          <circle cx="7.5" cy="16.5" r="1.4" fill="#fff"/>
+          <circle cx="16.5" cy="16.5" r="1.4" fill="#fff"/>
+        </svg>
+      </span>
+      <span class="nome">Cheiro Verde Ambiental</span>
+    </div>
+    <h1 id="tituloTela">Entrar</h1>
+    <p class="sub" id="subtituloTela">Faça login para registrar uma manutenção de veículo.</p>
+  </header>
+
+  <!-- ===================== TELA DE LOGIN (por CPF) ===================== -->
+  <div id="telaLogin">
+
+    <!-- Passo 1: informar o CPF -->
+    <div id="passoCpf">
+      <form id="formularioCpf" novalidate>
+        <div class="campo">
+          <label for="cpfLogin">CPF <span class="obrig">*</span></label>
+          <input type="text" id="cpfLogin" name="cpf" inputmode="numeric" autocomplete="username" placeholder="000.000.000-00" maxlength="14" required>
+        </div>
+        <p class="ajuda-login">Digite seu CPF. Se for a primeira vez usando o app, vamos te levar direto pro cadastro.</p>
+
+        <div class="erro-msg" id="erroCpf"></div>
+
+        <button type="submit" class="enviar" id="botaoContinuarCpf">
+          <span class="spinner"></span>
+          <span class="rotulo-normal">Continuar</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Passo 2: já cadastrado — pede a senha -->
+    <div id="passoSenha" style="display:none">
+      <button type="button" class="voltar-login" id="botaoVoltarCpf">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 5l-7 7 7 7" stroke="#5B6B62" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Trocar CPF
+      </button>
+      <form id="formularioSenha" novalidate>
+        <div class="campo">
+          <label>CPF</label>
+          <div class="campo-estatico" id="cpfSenhaExibicao">–</div>
+        </div>
+        <div class="campo">
+          <label for="pinLogin">Senha <span class="obrig">*</span></label>
+          <input type="password" id="pinLogin" name="pin" inputmode="numeric" autocomplete="current-password" placeholder="Sua senha de 4 a 6 números" maxlength="6" required>
+        </div>
+
+        <div class="erro-msg" id="erroSenha"></div>
+
+        <button type="submit" class="enviar" id="botaoEntrarSenha">
+          <span class="spinner"></span>
+          <span class="rotulo-normal">Entrar</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Passo 3: CPF novo — cadastro (nome, senha, reconhecimento facial) -->
+    <div id="passoCadastro" style="display:none">
+      <button type="button" class="voltar-login" id="botaoVoltarCpfCadastro">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 5l-7 7 7 7" stroke="#5B6B62" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Trocar CPF
+      </button>
+      <p class="ajuda-login">Esse CPF ainda não tem cadastro. Preencha seus dados abaixo pra criar seu acesso.</p>
+      <form id="formularioCadastro" novalidate>
+        <div class="campo">
+          <label for="nomeCadastro">Nome completo <span class="obrig">*</span></label>
+          <input type="text" id="nomeCadastro" name="nome" autocapitalize="words" autocomplete="name" placeholder="Seu nome completo" required>
+        </div>
+        <div class="campo">
+          <label>CPF</label>
+          <div class="campo-estatico" id="cpfCadastroExibicao">–</div>
+        </div>
+        <div class="duas-colunas">
+          <div class="campo">
+            <label for="pinCadastro">Crie uma senha <span class="obrig">*</span></label>
+            <input type="password" id="pinCadastro" name="pinCadastro" inputmode="numeric" autocomplete="new-password" placeholder="4 a 6 números" maxlength="6" required>
+          </div>
+          <div class="campo">
+            <label for="pinCadastroConfirmar">Confirme a senha <span class="obrig">*</span></label>
+            <input type="password" id="pinCadastroConfirmar" name="pinCadastroConfirmar" inputmode="numeric" autocomplete="new-password" placeholder="Repita a senha" maxlength="6" required>
+          </div>
+        </div>
+
+        <div class="campo">
+          <label>Reconhecimento facial <span class="obrig">*</span></label>
+          <div id="capturaRostoWrap"></div>
+          <p class="fotos-legenda">Vamos abrir a câmera pra tirar uma foto sua, guardada junto do seu cadastro.</p>
+        </div>
+
+        <div class="erro-msg" id="erroCadastro"></div>
+
+        <button type="submit" class="enviar" id="botaoCadastrar">
+          <span class="spinner"></span>
+          <span class="rotulo-normal">Cadastrar e entrar</span>
+        </button>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- ===================== TELA DO FORMULÁRIO ===================== -->
+  <div id="telaFormulario" style="display:none">
+
+    <div class="campo cartao-usuario">
+      <div class="info">
+        <span class="rotulo">Motorista</span>
+        <span class="nome" id="nomeMotoristaLogado">–</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="botao-sair" id="botaoMinhasSolicitacoes">Minhas solicitações</button>
+        <button type="button" class="botao-sair" id="botaoSair">Sair</button>
+      </div>
+    </div>
+
+    <div class="erro-msg aviso-rascunho" id="avisoRascunho" style="margin-bottom:-4px">Recuperamos o que você tinha preenchido antes de sair. Confira os dados e continue de onde parou.</div>
+
+    <form id="formulario" novalidate>
+
+      <div class="duas-colunas">
+        <div class="campo">
+          <label for="placa">Placa <span class="obrig">*</span></label>
+          <input type="text" id="placa" name="placa" placeholder="AAA0A00" maxlength="8" autocapitalize="characters" autocomplete="off" required>
+        </div>
+        <div class="campo">
+          <label>Data</label>
+          <div class="campo-estatico" id="dataExibicao">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="5" width="17" height="16" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 3v4M16 3v4M3.5 10h17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <span id="dataTexto">–</span>
+          </div>
+        </div>
+      </div>
+      <p class="ajuda-login" style="margin-top:-10px">Formatos aceitos: AAA0000, AAA-0000 ou AAA0A00 (Mercosul).</p>
+
+      <div class="duas-colunas">
+        <div class="campo">
+          <label for="km">Quilometragem <span class="obrig">*</span></label>
+          <input type="number" id="km" name="km" placeholder="Ex: 125430" inputmode="numeric" min="0" required>
+        </div>
+        <div class="campo">
+          <label for="tipo">Tipo de manutenção <span class="obrig">*</span></label>
+          <div class="select-wrap">
+            <select id="tipo" name="tipo" required>
+              <option value="" disabled selected>Selecione</option>
+              <option>Mecânica</option>
+              <option>Elétrica</option>
+              <option>Pneus</option>
+              <option>Freios</option>
+              <option>Suspensão</option>
+              <option>Fluidos / Óleo</option>
+              <option>Ar-condicionado</option>
+              <option>Lataria / Carroceria</option>
+              <option>Outro</option>
+            </select>
+          </div>
+          <div class="outro-wrap" id="outroWrap">
+            <input type="text" id="tipoOutro" placeholder="Especifique o tipo">
+          </div>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label for="descricao">Descrição do problema <span class="obrig">*</span></label>
+        <textarea id="descricao" name="descricao" placeholder="Descreva o que está acontecendo com o veículo" required></textarea>
+      </div>
+
+      <div class="campo">
+        <label>Fotos <span class="obrig">*</span></label>
+        <div class="fotos-grid" id="fotosGrid"></div>
+        <button type="button" class="botao-foto" id="botaoFoto">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 8a2 2 0 0 1 2-2h1.2a1 1 0 0 0 .86-.49l.7-1.18A1 1 0 0 1 9.62 4h4.76a1 1 0 0 1 .86.33l.7 1.18A1 1 0 0 0 16.8 6H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="13" r="3.2" stroke="currentColor" stroke-width="1.6"/></svg>
+          Adicionar foto
+        </button>
+        <input type="file" id="inputFoto" accept="image/*" capture="environment" multiple>
+        <p class="fotos-legenda">Até 5 fotos. Toque em "Adicionar foto" para tirar uma foto ou escolher da galeria.</p>
+      </div>
+
+      <div class="erro-msg" id="erroMsg"></div>
+
+      <button type="submit" class="enviar" id="botaoEnviar">
+        <span class="spinner"></span>
+        <span class="rotulo-normal">Enviar solicitação</span>
+      </button>
+    </form>
+
+  </div>
+
+  <!-- ===================== TELA: MINHAS SOLICITAÇÕES ===================== -->
+  <div id="telaMinhas" style="display:none">
+    <button type="button" class="voltar-minhas" id="botaoVoltarMinhas">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 5l-7 7 7 7" stroke="#5B6B62" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Voltar ao formulário
+    </button>
+    <div class="carregando-minhas" id="carregandoMinhas" style="display:none">Carregando suas solicitações…</div>
+    <div class="erro-msg" id="erroMinhas"></div>
+    <div class="vazio-minhas" id="vazioMinhas" style="display:none">Você ainda não enviou nenhuma solicitação hoje.</div>
+    <div class="lista-minhas" id="listaMinhas"></div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="modalSucesso">
+  <div class="modal-card">
+    <div class="icone">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h2>Solicitação enviada</h2>
+    <p>A equipe de manutenção vai receber os dados e as fotos por e-mail.</p>
+    <button type="button" id="botaoFecharModal">OK</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalErro">
+  <div class="modal-card">
+    <div class="icone icone-erro">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.5v5.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="16.3" r="1.1" fill="currentColor"/></svg>
+    </div>
+    <h2 id="modalErroTitulo">Placa não Cadastrada no Sistema</h2>
+    <p id="modalErroTexto">Verifique a placa digitada ou fale com seu supervisor.</p>
+    <button type="button" class="botao-secundario" id="botaoFecharModalErro">OK</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ============================================================
+  // Registra o service worker (sw.js), que é o que permite o
+  // navegador oferecer "instalar" o site como app. Se o arquivo
+  // não existir ainda no repositório, isso simplesmente falha em
+  // silêncio e o site continua funcionando normalmente como página.
+  // ============================================================
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
+
+  // ============================================================
+  // Cole aqui a URL do Apps Script (termina em /exec), depois de
+  // publicar o backend seguindo as instruções do arquivo
+  // Codigo_AppsScript.gs
+  // ============================================================
+  var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyJQQTkipnt-HrdxRn93ElTeUEyUqOaduDVGIWE8U3Qkm9OaK22cHwgmn5Q8uNZ2-b9-A/exec";
+
+  var MAX_FOTOS = 5;
+  var LADO_MAX_PX = 1600;
+  var QUALIDADE_JPEG = 0.72;
+  var FECHAMENTO_AUTOMATICO_MS = 3500;
+  var CHAVE_SESSAO = "cva_sessao_motorista_v1";
+  // Identificador deste aparelho/navegador (gerado uma vez, salvo aqui e
+  // reaproveitado depois) — mandado junto com verificarCpf/loginCpf pra o
+  // backend saber se é sempre o mesmo aparelho tentando, e poder bloquear
+  // depois de muita tentativa errada. Não identifica a pessoa, só o
+  // aparelho/navegador.
+  var CHAVE_DISPOSITIVO = "cva_dispositivo_id_v1";
+
+  // ---------- elementos: telas ----------
+  var tituloTela = document.getElementById("tituloTela");
+  var subtituloTela = document.getElementById("subtituloTela");
+  var telaLogin = document.getElementById("telaLogin");
+  var telaFormulario = document.getElementById("telaFormulario");
+  var telaMinhas = document.getElementById("telaMinhas");
+
+  // ---------- elementos: login por CPF ----------
+  var passoCpf = document.getElementById("passoCpf");
+  var formularioCpf = document.getElementById("formularioCpf");
+  var campoCpfLogin = document.getElementById("cpfLogin");
+  var erroCpf = document.getElementById("erroCpf");
+  var botaoContinuarCpf = document.getElementById("botaoContinuarCpf");
+
+  var passoSenha = document.getElementById("passoSenha");
+  var botaoVoltarCpf = document.getElementById("botaoVoltarCpf");
+  var cpfSenhaExibicao = document.getElementById("cpfSenhaExibicao");
+  var formularioSenha = document.getElementById("formularioSenha");
+  var campoPinLogin = document.getElementById("pinLogin");
+  var erroSenha = document.getElementById("erroSenha");
+  var botaoEntrarSenha = document.getElementById("botaoEntrarSenha");
+
+  var passoCadastro = document.getElementById("passoCadastro");
+  var botaoVoltarCpfCadastro = document.getElementById("botaoVoltarCpfCadastro");
+  var cpfCadastroExibicao = document.getElementById("cpfCadastroExibicao");
+  var formularioCadastro = document.getElementById("formularioCadastro");
+  var campoNomeCadastro = document.getElementById("nomeCadastro");
+  var campoPinCadastro = document.getElementById("pinCadastro");
+  var campoPinCadastroConfirmar = document.getElementById("pinCadastroConfirmar");
+  var capturaRostoWrap = document.getElementById("capturaRostoWrap");
+  var erroCadastro = document.getElementById("erroCadastro");
+  var botaoCadastrar = document.getElementById("botaoCadastrar");
+
+  var cpfAtual = ""; // CPF (só dígitos) do passo em andamento (senha ou cadastro)
+
+  // ---------- elementos: formulário de manutenção ----------
+  var nomeMotoristaLogado = document.getElementById("nomeMotoristaLogado");
+  var botaoSair = document.getElementById("botaoSair");
+  var botaoMinhasSolicitacoes = document.getElementById("botaoMinhasSolicitacoes");
+  var avisoRascunho = document.getElementById("avisoRascunho");
+  var form = document.getElementById("formulario");
+  var campoTipo = document.getElementById("tipo");
+  var outroWrap = document.getElementById("outroWrap");
+  var campoTipoOutro = document.getElementById("tipoOutro");
+  var dataTexto = document.getElementById("dataTexto");
+  var campoPlaca = document.getElementById("placa");
+  var inputFoto = document.getElementById("inputFoto");
+  var botaoFoto = document.getElementById("botaoFoto");
+  var fotosGrid = document.getElementById("fotosGrid");
+  var erroMsg = document.getElementById("erroMsg");
+  var botaoEnviar = document.getElementById("botaoEnviar");
+  var modalSucesso = document.getElementById("modalSucesso");
+  var botaoFecharModal = document.getElementById("botaoFecharModal");
+  var modalErro = document.getElementById("modalErro");
+  var modalErroTitulo = document.getElementById("modalErroTitulo");
+  var modalErroTexto = document.getElementById("modalErroTexto");
+  var botaoFecharModalErro = document.getElementById("botaoFecharModalErro");
+
+  // ---------- elementos: minhas solicitações ----------
+  var botaoVoltarMinhas = document.getElementById("botaoVoltarMinhas");
+  var carregandoMinhas = document.getElementById("carregandoMinhas");
+  var erroMinhas = document.getElementById("erroMinhas");
+  var vazioMinhas = document.getElementById("vazioMinhas");
+  var listaMinhas = document.getElementById("listaMinhas");
+
+  var fotos = []; // { filename, mimeType, base64, previewUrl }
+  var dataAtualISO = "";
+  var timerFechamentoModal = null;
+  var restaurandoRascunho = false; // evita salvar o rascunho de volta enquanto ele está sendo restaurado
+
+  // ============================================================
+  // JSONP genérico: usado para o login e para conferir a placa. Uma
+  // tag <script> não sofre bloqueio de CORS, diferente de um fetch()
+  // comum para um domínio diferente (script.google.com).
+  // ============================================================
+  function jsonp(urlBase, timeoutMs, aoReceber, aoFalhar){
+    var nomeCallback = "cvaCallback_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
+    var finalizado = false;
+
+    var tagScript = document.createElement("script");
+    tagScript.src = urlBase + (urlBase.indexOf("?") === -1 ? "?" : "&") + "callback=" + nomeCallback;
+
+    var timeoutId = setTimeout(function(){
+      if (finalizado) return;
+      finalizado = true;
+      limpar();
+      aoFalhar();
+    }, timeoutMs);
+
+    function limpar(){
+      clearTimeout(timeoutId);
+      delete window[nomeCallback];
+      if (tagScript.parentNode) tagScript.parentNode.removeChild(tagScript);
+    }
+
+    window[nomeCallback] = function(dados){
+      if (finalizado) return;
+      finalizado = true;
+      limpar();
+      aoReceber(dados);
+    };
+
+    tagScript.onerror = function(){
+      if (finalizado) return;
+      finalizado = true;
+      limpar();
+      aoFalhar();
+    };
+
+    document.head.appendChild(tagScript);
+  }
+
+  // ============================================================
+  // Sessão do motorista (guardada só neste aparelho/navegador) — CPF +
+  // senha (PIN) + nome. Sessões salvas ANTES da troca pro login por
+  // CPF não têm esses campos e por isso são tratadas como inválidas
+  // (obterSessao devolve null), levando a pessoa pra tela de CPF de
+  // novo — o cadastro por CPF é só uma vez, depois fica salvo aqui.
+  // ============================================================
+  function obterSessao(){
+    try {
+      var bruto = localStorage.getItem(CHAVE_SESSAO);
+      if (!bruto) return null;
+      var sessao = JSON.parse(bruto);
+      return (sessao && sessao.nome && sessao.cpf && sessao.pin) ? sessao : null;
+    } catch(e){ return null; }
+  }
+  function salvarSessao(cpf, pin, nome){
+    try { localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ cpf: cpf, pin: pin, nome: nome, desde: Date.now() })); } catch(e){}
+  }
+  function limparSessao(){
+    try { localStorage.removeItem(CHAVE_SESSAO); } catch(e){}
+  }
+
+  /**
+   * Devolve o ID deste aparelho, gerando e salvando um novo na primeira
+   * vez. Se o navegador não permitir localStorage (ex: navegação
+   * privada em alguns casos), devolve "" — nesse caso o backend
+   * simplesmente não consegue rastrear tentativas desse aparelho (não
+   * trava nada por causa disso, só fica sem essa proteção extra).
+   */
+  function obterIdDispositivo(){
+    try {
+      var id = localStorage.getItem(CHAVE_DISPOSITIVO);
+      if (!id){
+        id = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID()
+          : ("disp-" + Date.now() + "-" + Math.random().toString(36).slice(2));
+        localStorage.setItem(CHAVE_DISPOSITIVO, id);
+      }
+      return id;
+    } catch(e){ return ""; }
+  }
+
+  function formatarCpfVisual(digitos){
+    var d = String(digitos || "").slice(0, 11);
+    if (d.length > 9) return d.slice(0,3) + "." + d.slice(3,6) + "." + d.slice(6,9) + "-" + d.slice(9);
+    if (d.length > 6) return d.slice(0,3) + "." + d.slice(3,6) + "." + d.slice(6);
+    if (d.length > 3) return d.slice(0,3) + "." + d.slice(3);
+    return d;
+  }
+
+  /**
+   * Confere se os 11 dígitos batem com o cálculo oficial dos dígitos
+   * verificadores do CPF — mesma conta feita no backend, só pra dar
+   * feedback na hora sem precisar de internet.
+   */
+  function cpfValidoCliente(digitos){
+    if (digitos.length !== 11 || /^(\d)\1{10}$/.test(digitos)) return false;
+    function calcularDigito(base){
+      var soma = 0;
+      for (var i = 0; i < base.length; i++) soma += parseInt(base.charAt(i), 10) * (base.length + 1 - i);
+      var resto = (soma * 10) % 11;
+      return resto === 10 ? 0 : resto;
+    }
+    var d1 = calcularDigito(digitos.substring(0, 9));
+    var d2 = calcularDigito(digitos.substring(0, 9) + d1);
+    return digitos === digitos.substring(0, 9) + String(d1) + String(d2);
+  }
+
+  function mostrarPassoCpf(){
+    passoCpf.style.display = "";
+    passoSenha.style.display = "none";
+    passoCadastro.style.display = "none";
+    esconderErroCpf();
+    campoCpfLogin.value = "";
+    if (capturaRosto) capturaRosto.pararCamera();
+  }
+  function mostrarPassoSenha(digitos){
+    cpfAtual = digitos;
+    passoCpf.style.display = "none";
+    passoSenha.style.display = "";
+    passoCadastro.style.display = "none";
+    cpfSenhaExibicao.textContent = formatarCpfVisual(digitos);
+    campoPinLogin.value = "";
+    esconderErroSenha();
+    campoPinLogin.focus();
+  }
+  function mostrarPassoCadastro(digitos){
+    cpfAtual = digitos;
+    passoCpf.style.display = "none";
+    passoSenha.style.display = "none";
+    passoCadastro.style.display = "";
+    cpfCadastroExibicao.textContent = formatarCpfVisual(digitos);
+    campoNomeCadastro.value = "";
+    campoPinCadastro.value = "";
+    campoPinCadastroConfirmar.value = "";
+    esconderErroCadastro();
+    if (capturaRosto) capturaRosto.reiniciar();
+  }
+
+  function mostrarTelaLogin(){
+    telaLogin.style.display = "";
+    telaFormulario.style.display = "none";
+    telaMinhas.style.display = "none";
+    tituloTela.textContent = "Entrar";
+    subtituloTela.textContent = "Faça login para registrar uma manutenção de veículo.";
+    mostrarPassoCpf();
+  }
+  function mostrarTelaFormulario(nome){
+    nomeMotoristaLogado.textContent = nome;
+    telaLogin.style.display = "none";
+    telaFormulario.style.display = "";
+    telaMinhas.style.display = "none";
+    tituloTela.textContent = "Reporte de Manutenção de Veículo";
+    subtituloTela.textContent = "Preencha os dados abaixo e anexe fotos do problema.";
+  }
+  function mostrarTelaMinhas(){
+    telaLogin.style.display = "none";
+    telaFormulario.style.display = "none";
+    telaMinhas.style.display = "";
+    tituloTela.textContent = "Minhas solicitações de hoje";
+    subtituloTela.textContent = "Acompanhe o status do que você enviou hoje.";
+    carregarMinhasSolicitacoes();
+  }
+
+  function mostrarErroCpf(texto){ erroCpf.textContent = texto; erroCpf.classList.add("mostrar"); }
+  function esconderErroCpf(){ erroCpf.classList.remove("mostrar"); }
+  function mostrarErroSenha(texto){ erroSenha.textContent = texto; erroSenha.classList.add("mostrar"); }
+  function esconderErroSenha(){ erroSenha.classList.remove("mostrar"); }
+  function mostrarErroCadastro(texto){ erroCadastro.textContent = texto; erroCadastro.classList.add("mostrar"); }
+  function esconderErroCadastro(){ erroCadastro.classList.remove("mostrar"); }
+
+  campoCpfLogin.addEventListener("input", function(){
+    var digitos = campoCpfLogin.value.replace(/\D/g, "").slice(0, 11);
+    campoCpfLogin.value = formatarCpfVisual(digitos);
+  });
+
+  // Passo 1: informar o CPF — decide se pede senha (CPF já cadastrado)
+  // ou manda pra tela de cadastro (CPF novo).
+  formularioCpf.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    esconderErroCpf();
+
+    var digitos = campoCpfLogin.value.replace(/\D/g, "");
+    if (!cpfValidoCliente(digitos)){
+      mostrarErroCpf("CPF inválido. Confira os números digitados.");
+      return;
+    }
+    if (SCRIPT_URL.indexOf("COLE_AQUI") !== -1){
+      mostrarErroCpf("O app ainda não foi configurado: falta colar a URL do Apps Script no arquivo HTML.");
+      return;
+    }
+
+    botaoContinuarCpf.disabled = true;
+    botaoContinuarCpf.classList.add("carregando");
+
+    var url = SCRIPT_URL + "?acao=verificarCpf&cpf=" + encodeURIComponent(digitos) + "&dispositivo=" + encodeURIComponent(obterIdDispositivo());
+    jsonp(url, 10000,
+      function(dados){
+        botaoContinuarCpf.disabled = false;
+        botaoContinuarCpf.classList.remove("carregando");
+        if (dados && dados.ok){
+          if (dados.existe) mostrarPassoSenha(digitos);
+          else mostrarPassoCadastro(digitos);
+        } else {
+          mostrarErroCpf((dados && dados.error) || "Não foi possível verificar esse CPF agora.");
+        }
+      },
+      function(){
+        botaoContinuarCpf.disabled = false;
+        botaoContinuarCpf.classList.remove("carregando");
+        mostrarErroCpf("Não foi possível verificar agora. Verifique sua internet e tente novamente.");
+      }
+    );
+  });
+
+  botaoVoltarCpf.addEventListener("click", mostrarPassoCpf);
+  botaoVoltarCpfCadastro.addEventListener("click", mostrarPassoCpf);
+
+  // Passo 2: CPF já cadastrado — confere a senha (PIN).
+  formularioSenha.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    esconderErroSenha();
+
+    var pin = campoPinLogin.value.trim();
+    if (!pin){
+      mostrarErroSenha("Digite sua senha.");
+      return;
+    }
+
+    botaoEntrarSenha.disabled = true;
+    botaoEntrarSenha.classList.add("carregando");
+
+    var url = SCRIPT_URL + "?acao=loginCpf&cpf=" + encodeURIComponent(cpfAtual) + "&pin=" + encodeURIComponent(pin) + "&dispositivo=" + encodeURIComponent(obterIdDispositivo());
+    jsonp(url, 10000,
+      function(dados){
+        botaoEntrarSenha.disabled = false;
+        botaoEntrarSenha.classList.remove("carregando");
+        if (dados && dados.ok && dados.nome){
+          salvarSessao(cpfAtual, pin.replace(/\D/g, ""), dados.nome);
+          mostrarTelaFormulario(dados.nome);
+          restaurarRascunhoSeExistir();
+        } else {
+          mostrarErroSenha((dados && dados.error) || "CPF ou senha inválidos.");
+        }
+      },
+      function(){
+        botaoEntrarSenha.disabled = false;
+        botaoEntrarSenha.classList.remove("carregando");
+        mostrarErroSenha("Não foi possível verificar agora. Verifique sua internet e tente novamente.");
+      }
+    );
+  });
+
+  // ============================================================
+  // Reconhecimento facial (cadastro) — abre a câmera frontal, deixa
+  // tirar uma foto (recorte quadrado a partir do centro do quadro) e
+  // guarda pra enviar junto do cadastro. Não faz nenhuma comparação
+  // de rosto — é só um registro visual, tirado na hora, junto do
+  // cadastro do motorista.
+  // ============================================================
+  function criarCapturaRosto(){
+    var estado = { foto: null, stream: null };
+
+    var wrap = document.createElement("div");
+    wrap.className = "captura-rosto";
+
+    var moldura = document.createElement("div");
+    moldura.className = "moldura";
+    wrap.appendChild(moldura);
+
+    var placeholder = document.createElement("div");
+    placeholder.className = "placeholder";
+    placeholder.innerHTML = '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.6"/><path d="M5 19c1.3-3.2 4-5 7-5s5.7 1.8 7 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+
+    var video = document.createElement("video");
+    video.setAttribute("autoplay", "");
+    video.setAttribute("muted", "");
+    video.setAttribute("playsinline", "");
+
+    var img = document.createElement("img");
+    img.alt = "Foto do cadastro";
+
+    var botoes = document.createElement("div");
+    botoes.className = "captura-botoes";
+    wrap.appendChild(botoes);
+
+    var status = document.createElement("div");
+    status.className = "status-captura";
+    wrap.appendChild(status);
+
+    var botaoLigar = document.createElement("button");
+    botaoLigar.type = "button";
+    botaoLigar.className = "principal";
+    botaoLigar.textContent = "Ligar câmera";
+
+    var botaoCapturar = document.createElement("button");
+    botaoCapturar.type = "button";
+    botaoCapturar.className = "principal";
+    botaoCapturar.textContent = "Tirar foto";
+
+    var botaoRefazer = document.createElement("button");
+    botaoRefazer.type = "button";
+    botaoRefazer.textContent = "Tirar novamente";
+
+    function pararCamera(){
+      if (estado.stream){
+        estado.stream.getTracks().forEach(function(t){ t.stop(); });
+        estado.stream = null;
+      }
+    }
+    function mostrarPlaceholder(){
+      moldura.innerHTML = "";
+      moldura.appendChild(placeholder);
+      botoes.innerHTML = "";
+      botoes.appendChild(botaoLigar);
+    }
+    function mostrarVideo(){
+      moldura.innerHTML = "";
+      moldura.appendChild(video);
+      botoes.innerHTML = "";
+      botoes.appendChild(botaoCapturar);
+    }
+    function mostrarFoto(){
+      moldura.innerHTML = "";
+      img.src = estado.foto.previewUrl;
+      moldura.appendChild(img);
+      botoes.innerHTML = "";
+      botoes.appendChild(botaoRefazer);
+    }
+
+    botaoLigar.addEventListener("click", function(){
+      status.textContent = "";
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+        status.textContent = "Esse navegador não permite acessar a câmera. Tente pelo Chrome ou Safari atualizados.";
+        return;
+      }
+      botaoLigar.disabled = true;
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
+        .then(function(stream){
+          botaoLigar.disabled = false;
+          estado.stream = stream;
+          video.srcObject = stream;
+          mostrarVideo();
+        })
+        .catch(function(){
+          botaoLigar.disabled = false;
+          status.textContent = "Não foi possível acessar a câmera. Verifique as permissões do navegador e tente novamente.";
+        });
+    });
+
+    botaoCapturar.addEventListener("click", function(){
+      var largura = video.videoWidth || 480;
+      var altura = video.videoHeight || 480;
+      var lado = Math.min(largura, altura);
+      var canvas = document.createElement("canvas");
+      canvas.width = 480;
+      canvas.height = 480;
+      canvas.getContext("2d").drawImage(
+        video,
+        (largura - lado) / 2, (altura - lado) / 2, lado, lado,
+        0, 0, 480, 480
+      );
+      var dataUrl = canvas.toDataURL("image/jpeg", QUALIDADE_JPEG);
+      estado.foto = {
+        filename: "foto-cadastro.jpg",
+        mimeType: "image/jpeg",
+        base64: dataUrl.split(",")[1],
+        previewUrl: dataUrl
+      };
+      pararCamera();
+      mostrarFoto();
+    });
+
+    botaoRefazer.addEventListener("click", function(){
+      estado.foto = null;
+      mostrarPlaceholder();
+      botaoLigar.click();
+    });
+
+    mostrarPlaceholder();
+
+    return {
+      elemento: wrap,
+      temFoto: function(){ return !!estado.foto; },
+      obterFoto: function(){ return estado.foto; },
+      pararCamera: pararCamera,
+      reiniciar: function(){ pararCamera(); estado.foto = null; mostrarPlaceholder(); }
+    };
+  }
+
+  var capturaRosto = criarCapturaRosto();
+  capturaRostoWrap.appendChild(capturaRosto.elemento);
+
+  // Passo 3: CPF novo — cadastro completo (nome + CPF + senha + foto).
+  formularioCadastro.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    esconderErroCadastro();
+
+    var nome = campoNomeCadastro.value.trim();
+    var pin = campoPinCadastro.value.trim();
+    var pinConfirmar = campoPinCadastroConfirmar.value.trim();
+
+    if (!nome){
+      mostrarErroCadastro("Informe seu nome completo.");
+      return;
+    }
+    if (!/^\d{4,6}$/.test(pin)){
+      mostrarErroCadastro("A senha deve ter entre 4 e 6 números.");
+      return;
+    }
+    if (pin !== pinConfirmar){
+      mostrarErroCadastro("As duas senhas digitadas são diferentes.");
+      return;
+    }
+    if (!capturaRosto.temFoto()){
+      mostrarErroCadastro("Tire a foto do reconhecimento facial antes de continuar.");
+      return;
+    }
+
+    botaoCadastrar.disabled = true;
+    botaoCadastrar.classList.add("carregando");
+
+    function enviarCadastro(){
+      var payload = {
+        formulario: "cadastroMotorista",
+        nome: nome,
+        cpf: cpfAtual,
+        pin: pin,
+        foto: capturaRosto.obterFoto()
+      };
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      })
+      .then(function(){
+        capturaRosto.pararCamera();
+        salvarSessao(cpfAtual, pin, nome);
+        mostrarTelaFormulario(nome);
+      })
+      .catch(function(){
+        mostrarErroCadastro("Não foi possível enviar seu cadastro agora. Verifique sua internet e tente novamente.");
+      })
+      .finally(function(){
+        botaoCadastrar.disabled = false;
+        botaoCadastrar.classList.remove("carregando");
+      });
+    }
+
+    // Confere de novo, na hora, se ninguém cadastrou esse CPF nesse
+    // meio-tempo (outro aparelho, por exemplo) antes de gravar.
+    var urlChecagem = SCRIPT_URL + "?acao=verificarCpf&cpf=" + encodeURIComponent(cpfAtual) + "&dispositivo=" + encodeURIComponent(obterIdDispositivo());
+    jsonp(urlChecagem, 10000,
+      function(dadosChecagem){
+        if (dadosChecagem && dadosChecagem.ok && dadosChecagem.existe){
+          botaoCadastrar.disabled = false;
+          botaoCadastrar.classList.remove("carregando");
+          mostrarErroCadastro('Esse CPF já foi cadastrado. Toque em "Trocar CPF" e entre com sua senha.');
+          return;
+        }
+        enviarCadastro();
+      },
+      enviarCadastro
+    );
+  });
+
+  botaoSair.addEventListener("click", function(){
+    limparSessao();
+    mostrarTelaLogin();
+  });
+
+  botaoMinhasSolicitacoes.addEventListener("click", mostrarTelaMinhas);
+  botaoVoltarMinhas.addEventListener("click", function(){
+    var sessao = obterSessao();
+    mostrarTelaFormulario(sessao ? sessao.nome : "–");
+  });
+
+  // ============================================================
+  // Minhas solicitações: mostra pro próprio motorista o status do que
+  // ele enviou HOJE (só hoje, não é um histórico completo), sem
+  // precisar perguntar pra gestão.
+  // ============================================================
+  var STATUS_INFO_MINHAS = {
+    novo: { bg: "#E8F1FA", texto: "#2A6FB0", rotulo: "Aguardando triagem" },
+    em_andamento: { bg: "#FBF3E1", texto: "#8A661A", rotulo: "Em andamento" },
+    concluido: { bg: "#E7F3EC", texto: "#14532d", rotulo: "Concluída" },
+    cancelado: { bg: "#FBEAE7", texto: "#C24A3B", rotulo: "Cancelada" }
+  };
+
+  function carregarMinhasSolicitacoes(){
+    var sessao = obterSessao();
+    if (!sessao){ mostrarTelaLogin(); return; }
+
+    carregandoMinhas.style.display = "block";
+    erroMinhas.classList.remove("mostrar");
+    vazioMinhas.style.display = "none";
+    listaMinhas.innerHTML = "";
+
+    var url = SCRIPT_URL + "?acao=listarMinhasSolicitacoes" +
+      "&cpf=" + encodeURIComponent(sessao.cpf) +
+      "&pin=" + encodeURIComponent(sessao.pin);
+
+    jsonp(url, 12000,
+      function(dados){
+        carregandoMinhas.style.display = "none";
+        if (dados && dados.ok){
+          renderizarMinhasSolicitacoes(dados.solicitacoes || []);
+        } else {
+          erroMinhas.textContent = (dados && dados.error) || "Não foi possível carregar suas solicitações.";
+          erroMinhas.classList.add("mostrar");
+        }
+      },
+      function(){
+        carregandoMinhas.style.display = "none";
+        erroMinhas.textContent = "Sem conexão agora. Tente novamente.";
+        erroMinhas.classList.add("mostrar");
+      }
+    );
+  }
+
+  function renderizarMinhasSolicitacoes(lista){
+    listaMinhas.innerHTML = "";
+    if (!lista.length){
+      vazioMinhas.style.display = "block";
+      return;
+    }
+    vazioMinhas.style.display = "none";
+
+    lista.forEach(function(item){
+      var info = STATUS_INFO_MINHAS[item.status] || STATUS_INFO_MINHAS.novo;
+      var el = document.createElement("div");
+      el.className = "item-minha";
+
+      var topo = document.createElement("div");
+      topo.className = "topo-item";
+      topo.innerHTML =
+        '<div><div class="placa-item">' + escaparHtmlMinhas(item.placa || "Sem placa") + '</div>' +
+        '<div class="data-item">' + escaparHtmlMinhas(item.dataHoraEnvio || "") + (item.tipo ? " · " + escaparHtmlMinhas(item.tipo) : "") + '</div></div>' +
+        '<span class="badge-status" style="background:' + info.bg + ';color:' + info.texto + '">' + info.rotulo + '</span>';
+      el.appendChild(topo);
+
+      if (item.descricao){
+        var descricao = document.createElement("div");
+        descricao.className = "descricao-item";
+        descricao.textContent = item.descricao;
+        el.appendChild(descricao);
+      }
+
+      if (item.status === "em_andamento" && (item.prestador || item.prazoDataLimite)){
+        var extra = document.createElement("div");
+        extra.className = "extra-item";
+        var partes = [];
+        if (item.prestador) partes.push("Prestador: " + item.prestador);
+        if (item.prazoDataLimite) partes.push("Prazo: " + item.prazoDataLimite);
+        extra.textContent = partes.join(" · ");
+        el.appendChild(extra);
+      }
+
+      if (item.status === "cancelado" && item.motivoRejeicao){
+        var motivo = document.createElement("div");
+        motivo.className = "extra-item";
+        motivo.textContent = "Motivo: " + item.motivoRejeicao;
+        el.appendChild(motivo);
+      }
+
+      listaMinhas.appendChild(el);
+    });
+  }
+
+  function escaparHtmlMinhas(texto){
+    var div = document.createElement("div");
+    div.textContent = String(texto == null ? "" : texto);
+    return div.innerHTML;
+  }
+
+  // ============================================================
+  // Placa: o motorista digita, não escolhe de uma lista. O campo só
+  // aceita seguir para o envio se o formato bater com um padrão de
+  // placa brasileira, e a existência da placa é conferida no servidor
+  // (sem nunca baixar a lista completa de placas para o navegador).
+  // ============================================================
+  campoPlaca.addEventListener("input", function(){
+    var posicao = campoPlaca.selectionStart;
+    campoPlaca.value = campoPlaca.value.toUpperCase();
+    try { campoPlaca.setSelectionRange(posicao, posicao); } catch(e){}
+  });
+
+  function formatoPlacaValido(placa){
+    var valor = placa.trim().toUpperCase();
+    var padraoAntigo = /^[A-Z]{3}-?\d{4}$/;       // AAA0000 ou AAA-0000
+    var padraoMercosul = /^[A-Z]{3}\d[A-Z]\d{2}$/; // AAA0A00
+    return padraoAntigo.test(valor) || padraoMercosul.test(valor);
+  }
+
+  function validarPlacaNoServidor(placa, aoConcluir){
+    var url = SCRIPT_URL + "?acao=validarPlaca&placa=" + encodeURIComponent(placa);
+    jsonp(url, 10000,
+      function(dados){
+        var ultimoKm = dados && (dados.ultimoKm || dados.ultimoKm === 0) ? dados.ultimoKm : null;
+        aoConcluir(!!(dados && dados.ok), ultimoKm);
+      },
+      function(){ aoConcluir(null, null); }
+    );
+  }
+
+  // Data da solicitação = sempre o dia de hoje (não editável pelo motorista)
+  function hojeISO(){
+    var d = new Date();
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var dia = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + m + "-" + dia;
+  }
+  function formatarDataBR(iso){
+    var partes = iso.split("-");
+    return partes.length === 3 ? (partes[2] + "/" + partes[1] + "/" + partes[0]) : iso;
+  }
+  function atualizarData(){
+    dataAtualISO = hojeISO();
+    dataTexto.textContent = formatarDataBR(dataAtualISO);
+  }
+  atualizarData();
+
+  // ============================================================
+  // Rascunho automático: guarda o que o motorista já preencheu (placa,
+  // km, tipo, descrição e as fotos já comprimidas) pra não perder nada
+  // se a internet cair ou a página fechar sem querer antes de enviar.
+  // Fica só neste aparelho, e é apagado assim que a solicitação é
+  // enviada com sucesso.
+  // ============================================================
+  var CHAVE_RASCUNHO = "cva_rascunho_manutencao_v1";
+  var timerSalvarRascunho = null;
+
+  function salvarRascunho(){
+    if (restaurandoRascunho) return;
+    try {
+      var rascunho = {
+        placa: campoPlaca.value,
+        km: document.getElementById("km").value,
+        tipo: campoTipo.value,
+        tipoOutro: campoTipoOutro.value,
+        descricao: document.getElementById("descricao").value,
+        fotos: fotos,
+        salvoEm: Date.now()
+      };
+      localStorage.setItem(CHAVE_RASCUNHO, JSON.stringify(rascunho));
+    } catch(e){
+      // localStorage cheio (fotos grandes) ou indisponível — sem
+      // problema, só não guarda o rascunho dessa vez.
+    }
+  }
+  function salvarRascunhoComAtraso(){
+    if (timerSalvarRascunho) clearTimeout(timerSalvarRascunho);
+    timerSalvarRascunho = setTimeout(salvarRascunho, 600);
+  }
+  function limparRascunho(){
+    try { localStorage.removeItem(CHAVE_RASCUNHO); } catch(e){}
+    avisoRascunho.classList.remove("mostrar");
+  }
+  function restaurarRascunhoSeExistir(){
+    var bruto;
+    try { bruto = localStorage.getItem(CHAVE_RASCUNHO); } catch(e){ bruto = null; }
+    if (!bruto) return;
+    var rascunho;
+    try { rascunho = JSON.parse(bruto); } catch(e){ rascunho = null; }
+    if (!rascunho) return;
+
+    restaurandoRascunho = true;
+    if (rascunho.placa) campoPlaca.value = rascunho.placa;
+    if (rascunho.km) document.getElementById("km").value = rascunho.km;
+    if (rascunho.tipo){
+      campoTipo.value = rascunho.tipo;
+      var mostrarOutro = rascunho.tipo === "Outro";
+      outroWrap.classList.toggle("mostrar", mostrarOutro);
+      campoTipoOutro.required = mostrarOutro;
+    }
+    if (rascunho.tipoOutro) campoTipoOutro.value = rascunho.tipoOutro;
+    if (rascunho.descricao) document.getElementById("descricao").value = rascunho.descricao;
+    if (rascunho.fotos && rascunho.fotos.length){
+      fotos = rascunho.fotos;
+      renderizarFotos();
+    }
+    restaurandoRascunho = false;
+
+    avisoRascunho.classList.add("mostrar");
+  }
+
+  [campoPlaca, document.getElementById("km"), campoTipoOutro, document.getElementById("descricao")].forEach(function(campo){
+    campo.addEventListener("input", salvarRascunhoComAtraso);
+  });
+  campoTipo.addEventListener("change", salvarRascunhoComAtraso);
+
+  // ============================================================
+  // Inicialização: se já existe sessão salva neste aparelho, pula
+  // direto para o formulário. Senão, mostra a tela de login.
+  // ============================================================
+  var sessaoInicial = obterSessao();
+  if (sessaoInicial){
+    mostrarTelaFormulario(sessaoInicial.nome);
+    restaurarRascunhoSeExistir();
+  } else {
+    mostrarTelaLogin();
+  }
+
+  // Campo "Outro" tipo de manutenção
+  campoTipo.addEventListener("change", function(){
+    var mostrar = campoTipo.value === "Outro";
+    outroWrap.classList.toggle("mostrar", mostrar);
+    campoTipoOutro.required = mostrar;
+  });
+
+  // Seleção / compressão de fotos
+  botaoFoto.addEventListener("click", function(){
+    if (fotos.length >= MAX_FOTOS){
+      mostrarErro("Você já adicionou o máximo de " + MAX_FOTOS + " fotos.");
+      return;
+    }
+    inputFoto.click();
+  });
+
+  inputFoto.addEventListener("change", function(){
+    var arquivos = Array.prototype.slice.call(inputFoto.files || []);
+    inputFoto.value = "";
+    arquivos.forEach(function(arquivo){
+      if (fotos.length >= MAX_FOTOS) return;
+      if (!/^image\//.test(arquivo.type)) return;
+      comprimirImagem(arquivo, function(resultado){
+        fotos.push(resultado);
+        renderizarFotos();
+      });
+    });
+  });
+
+  function comprimirImagem(arquivo, callback){
+    var leitor = new FileReader();
+    leitor.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        var largura = img.width, altura = img.height;
+        if (largura > altura && largura > LADO_MAX_PX){
+          altura = Math.round(altura * (LADO_MAX_PX / largura));
+          largura = LADO_MAX_PX;
+        } else if (altura > LADO_MAX_PX){
+          largura = Math.round(largura * (LADO_MAX_PX / altura));
+          altura = LADO_MAX_PX;
+        }
+        var canvas = document.createElement("canvas");
+        canvas.width = largura;
+        canvas.height = altura;
+        canvas.getContext("2d").drawImage(img, 0, 0, largura, altura);
+        var dataUrl = canvas.toDataURL("image/jpeg", QUALIDADE_JPEG);
+        callback({
+          filename: (arquivo.name || "foto").replace(/\.[^.]+$/, "") + ".jpg",
+          mimeType: "image/jpeg",
+          base64: dataUrl.split(",")[1],
+          previewUrl: dataUrl
+        });
+      };
+      img.src = e.target.result;
+    };
+    leitor.readAsDataURL(arquivo);
+  }
+
+  function renderizarFotos(){
+    fotosGrid.innerHTML = "";
+    fotos.forEach(function(foto, indice){
+      var item = document.createElement("div");
+      item.className = "foto-item";
+      var img = document.createElement("img");
+      img.src = foto.previewUrl;
+      img.alt = "Foto " + (indice + 1);
+      var remover = document.createElement("button");
+      remover.type = "button";
+      remover.textContent = "✕";
+      remover.setAttribute("aria-label", "Remover foto");
+      remover.addEventListener("click", function(){
+        fotos.splice(indice, 1);
+        renderizarFotos();
+      });
+      item.appendChild(img);
+      item.appendChild(remover);
+      fotosGrid.appendChild(item);
+    });
+    salvarRascunho();
+  }
+
+  function mostrarErro(texto){
+    erroMsg.textContent = texto;
+    erroMsg.classList.add("mostrar");
+  }
+  function esconderErro(){
+    erroMsg.classList.remove("mostrar");
+  }
+
+  function limparFormulario(){
+    form.reset();
+    fotos = [];
+    renderizarFotos();
+    outroWrap.classList.remove("mostrar");
+    campoTipoOutro.required = false;
+    atualizarData();
+    esconderErro();
+    limparRascunho();
+  }
+
+  function abrirModalSucesso(){
+    modalSucesso.classList.add("mostrar");
+    botaoFecharModal.focus();
+    if (timerFechamentoModal) clearTimeout(timerFechamentoModal);
+    timerFechamentoModal = setTimeout(fecharModalSucesso, FECHAMENTO_AUTOMATICO_MS);
+  }
+  function fecharModalSucesso(){
+    modalSucesso.classList.remove("mostrar");
+    if (timerFechamentoModal){ clearTimeout(timerFechamentoModal); timerFechamentoModal = null; }
+  }
+  botaoFecharModal.addEventListener("click", fecharModalSucesso);
+  modalSucesso.addEventListener("click", function(ev){
+    if (ev.target === modalSucesso) fecharModalSucesso();
+  });
+
+  function abrirModalErro(titulo, texto){
+    modalErroTitulo.textContent = titulo;
+    modalErroTexto.textContent = texto;
+    modalErro.classList.add("mostrar");
+    botaoFecharModalErro.focus();
+  }
+  function fecharModalErro(){
+    modalErro.classList.remove("mostrar");
+  }
+  botaoFecharModalErro.addEventListener("click", fecharModalErro);
+  modalErro.addEventListener("click", function(ev){
+    if (ev.target === modalErro) fecharModalErro();
+  });
+
+  function enviarSolicitacao(placa){
+    var sessao = obterSessao();
+    var tipoFinal = campoTipo.value === "Outro" && campoTipoOutro.value.trim()
+      ? "Outro – " + campoTipoOutro.value.trim()
+      : campoTipo.value;
+
+    var payload = {
+      motorista: sessao ? sessao.nome : "",
+      placa: placa,
+      km: document.getElementById("km").value,
+      tipo: tipoFinal,
+      data: formatarDataBR(dataAtualISO),
+      descricao: document.getElementById("descricao").value.trim(),
+      fotos: fotos.map(function(f){
+        return { filename: f.filename, mimeType: f.mimeType, base64: f.base64 };
+      })
+    };
+
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    })
+    .then(function(){
+      limparFormulario();
+      abrirModalSucesso();
+    })
+    .catch(function(){
+      mostrarErro("Não foi possível enviar agora. Verifique sua conexão com a internet e tente novamente.");
+    })
+    .finally(function(){
+      botaoEnviar.disabled = false;
+      botaoEnviar.classList.remove("carregando");
+    });
+  }
+
+  form.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    esconderErro();
+
+    var sessao = obterSessao();
+    if (!sessao || !sessao.nome){
+      mostrarTelaLogin();
+      return;
+    }
+
+    if (!form.checkValidity()){
+      form.reportValidity();
+      return;
+    }
+    if (fotos.length === 0){
+      mostrarErro("Adicione pelo menos uma foto do problema.");
+      return;
+    }
+
+    var placaDigitada = campoPlaca.value.trim().toUpperCase();
+    if (!formatoPlacaValido(placaDigitada)){
+      mostrarErro("Formato de placa inválido. Use AAA0000, AAA-0000 ou AAA0A00 (Mercosul).");
+      return;
+    }
+
+    botaoEnviar.disabled = true;
+    botaoEnviar.classList.add("carregando");
+
+    validarPlacaNoServidor(placaDigitada, function(valido, ultimoKm){
+      if (valido === false){
+        botaoEnviar.disabled = false;
+        botaoEnviar.classList.remove("carregando");
+        abrirModalErro("Placa não Cadastrada no Sistema", "Verifique a placa digitada ou fale com seu supervisor.");
+        return;
+      }
+      if (valido === null){
+        botaoEnviar.disabled = false;
+        botaoEnviar.classList.remove("carregando");
+        abrirModalErro("Placa não cadastrada", "Corrija as informações da placa do veículo.");
+        return;
+      }
+
+      // Trava: não deixa enviar se a KM digitada for menor que a
+      // última já registrada pra essa placa (provável erro de digitação).
+      var kmDigitado = parseInt(String(document.getElementById("km").value).replace(/\D/g, ""), 10);
+      if (ultimoKm !== null && !isNaN(kmDigitado) && kmDigitado < ultimoKm){
+        botaoEnviar.disabled = false;
+        botaoEnviar.classList.remove("carregando");
+        abrirModalErro(
+          "Verifique a KM do veículo",
+          "A quilometragem informada (" + kmDigitado.toLocaleString("pt-BR") + " km) é menor que a última manutenção registrada para essa placa (" + ultimoKm.toLocaleString("pt-BR") + " km). Confira o hodômetro do veículo e tente novamente."
+        );
+        return;
+      }
+
+      enviarSolicitacao(placaDigitada);
+    });
+  });
+
+})();
+</script>
+</body>
+</html>

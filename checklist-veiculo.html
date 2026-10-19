@@ -584,6 +584,12 @@
   var FECHAMENTO_AUTOMATICO_MS = 3500;
   var CHAVE_SESSAO = "cva_sessao_checklist_v1";
   var CHAVE_RASCUNHO_CHECKLIST = "cva_rascunho_checklist_v1";
+  // Identificador deste aparelho/navegador (gerado uma vez, salvo aqui e
+  // reaproveitado depois) — mandado junto com verificarCpf/loginCpf pra o
+  // backend saber se é sempre o mesmo aparelho tentando, e poder bloquear
+  // depois de muita tentativa errada. Não identifica a pessoa, só o
+  // aparelho/navegador.
+  var CHAVE_DISPOSITIVO = "cva_dispositivo_id_v1";
 
   var ITENS_FOTOS_GERAIS = [
     "Frente", "Trás", "Lateral frente esquerda", "Lateral frente direita",
@@ -745,6 +751,25 @@
     try { localStorage.removeItem(CHAVE_SESSAO); } catch(e){}
   }
 
+  /**
+   * Devolve o ID deste aparelho, gerando e salvando um novo na primeira
+   * vez. Se o navegador não permitir localStorage (ex: navegação
+   * privada em alguns casos), devolve "" — nesse caso o backend
+   * simplesmente não consegue rastrear tentativas desse aparelho (não
+   * trava nada por causa disso, só fica sem essa proteção extra).
+   */
+  function obterIdDispositivo(){
+    try {
+      var id = localStorage.getItem(CHAVE_DISPOSITIVO);
+      if (!id){
+        id = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID()
+          : ("disp-" + Date.now() + "-" + Math.random().toString(36).slice(2));
+        localStorage.setItem(CHAVE_DISPOSITIVO, id);
+      }
+      return id;
+    } catch(e){ return ""; }
+  }
+
   function formatarCpfVisual(digitos){
     var d = String(digitos || "").slice(0, 11);
     if (d.length > 9) return d.slice(0,3) + "." + d.slice(3,6) + "." + d.slice(6,9) + "-" + d.slice(9);
@@ -867,7 +892,7 @@
     botaoContinuarCpf.disabled = true;
     botaoContinuarCpf.classList.add("carregando");
 
-    var url = SCRIPT_URL + "?acao=verificarCpf&cpf=" + encodeURIComponent(digitos);
+    var url = SCRIPT_URL + "?acao=verificarCpf&cpf=" + encodeURIComponent(digitos) + "&dispositivo=" + encodeURIComponent(obterIdDispositivo());
     jsonp(url, 10000,
       function(dados){
         botaoContinuarCpf.disabled = false;
@@ -904,7 +929,7 @@
     botaoEntrarSenha.disabled = true;
     botaoEntrarSenha.classList.add("carregando");
 
-    var url = SCRIPT_URL + "?acao=loginCpf&cpf=" + encodeURIComponent(cpfAtual) + "&pin=" + encodeURIComponent(pin);
+    var url = SCRIPT_URL + "?acao=loginCpf&cpf=" + encodeURIComponent(cpfAtual) + "&pin=" + encodeURIComponent(pin) + "&dispositivo=" + encodeURIComponent(obterIdDispositivo());
     jsonp(url, 10000,
       function(dados){
         botaoEntrarSenha.disabled = false;
@@ -1123,7 +1148,7 @@
 
     // Confere de novo, na hora, se ninguém cadastrou esse CPF nesse
     // meio-tempo (outro aparelho, por exemplo) antes de gravar.
-    var urlChecagem = SCRIPT_URL + "?acao=verificarCpf&cpf=" + encodeURIComponent(cpfAtual);
+    var urlChecagem = SCRIPT_URL + "?acao=verificarCpf&cpf=" + encodeURIComponent(cpfAtual) + "&dispositivo=" + encodeURIComponent(obterIdDispositivo());
     jsonp(urlChecagem, 10000,
       function(dadosChecagem){
         if (dadosChecagem && dadosChecagem.ok && dadosChecagem.existe){
